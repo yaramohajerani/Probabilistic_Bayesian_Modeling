@@ -19,8 +19,8 @@ model {
 //	vector[Npred] y_pred; //allocate y_pred vector
 //	y_pred = exp(beta0)*(zpred/100)^beta1;  //posterior for 'true y' given x
 //}
-//generated quantities{ //should comment this section out if you have a big dataset as it generates a ton of output
-//	vector[N] y_pred; //allocate y_pred vector
-//	y_pred = beta0 + beta1*x;  //posterior for 'true y' given x
-//}
+generated quantities{ //should comment this section out if you have a big dataset as it generates a ton of output
+	vector[N] y_pred; //allocate y_pred vector
+	y_pred = beta0 + beta1*x;  //posterior for 'true y' given x
+}
 
