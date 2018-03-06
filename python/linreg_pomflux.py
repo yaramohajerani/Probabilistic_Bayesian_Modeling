@@ -36,19 +36,15 @@ d0.columns = ['id_ref','id','type','lat','lon','trap','depth_bathy','depth','sta
 'flux_pheop','flux_caco3','flux_caco3_sd','flux_fe','flux_fe_sd','flux_ba','flux_det','flux_ti','ref','url','url2'] 
 
 #-- remove rows where the depth or desired fluxes are missing
-ind1 = np.squeeze(np.nonzero(np.isnan(d0['flux_poc'])))
-ind2 = np.squeeze(np.nonzero(np.isnan(d0['flux_pon'])))
-ind3 = np.squeeze(np.nonzero(np.isnan(d0['flux_pop'])))
-#-- get the union of the missing indices
-ind = np.union1d(np.union1d(ind1,ind2),ind3)
+ind1 = np.squeeze(np.nonzero(~np.isnan(d0['flux_poc'])))
+ind2 = np.squeeze(np.nonzero(~np.isnan(d0['flux_pon'])))
+ind3 = np.squeeze(np.nonzero(~np.isnan(d0['flux_pop'])))
+#-- get intersection
+ind = list(set(ind1) & set(ind2) & set(ind3))
 
 d = {}
 for c in d0.columns:
-	#d[c] = d0[c][ind].values
-	#-- leave nan values in:
-	#d[c] = d0[c].values
-	#-- use just 50 elements for testing for now
-	d[c] = d0[c][ind][:50].values
+	d[c] = d0[c][ind].values
 
 print('Reduced rows to common indices.')
 
@@ -69,7 +65,7 @@ logList['depth'] = np.log(d['depth']) #log of depth
 ## Plots of the data ###############
 ####################################
 ##--POC,PON,POP profiles: arithmetic and log scale--##
-f,ax = plt.subplots(2,3, figsize=(8,8))
+f,ax = plt.subplots(2,3, figsize=(12,8))
 #-- original data
 for i,v,s in zip([0,1,2],['flux_poc','flux_pon','flux_pop'],[1,12,106]):
 	ax[0,i].plot(d[v],d['depth'],'k.')
@@ -85,13 +81,13 @@ for i,v in zip([0,1,2],['flux_poc','flux_pon','flux_pop']):
 	ax[1,i].set_title('log(%s)'%v)
 	ax[1,i].set_ylabel('depth')
 	ax[1,i].set_xlabel(v)
-
+plt.tight_layout()
 print('Plotted data.')
 
 #########################################
 ## Package the data for Stan ############
 #########################################
-dat = dict(N=len(logList['flux_poc']),x=logList['depth'], y=logList['flux_poc'],zpred=np.arange(501),Npred=501) 
+dat = dict(N=len(logList['flux_poc']),x=logList['depth'], y=logList['flux_poc'])#,zpred=np.arange(501),Npred=501) 
 
 #######################################################
 ## Fit Stan model #####################################
@@ -109,8 +105,7 @@ else:
 
 print('Compiled Model.')
 
-#fit = mod.sampling(data=dat, iter=2000, chains=4, warmup=1000) #fit model
-fit = mod.sampling(data=dat, iter=100, chains=2, warmup=50) #fit model
+fit = mod.sampling(data=dat, iter=2000, chains=4, warmup=1000) #fit model
 print('Fit model.')
 
 #######################################################
@@ -124,7 +119,7 @@ post_b   =  post['beta1'] #extract posterior samples for 'b'
 post_f0  = np.exp(post['beta0']) #extract posterior samples for intercept
 post_sigma =  post['sigma'] #extract posterior samples for sigma
 
-f2,axarr = plt.subplots(3,1, figsize=(6,8))
+f2,axarr = plt.subplots(3,1, figsize=(8,8))
 #-- beta1
 yhist, xhist, _ = axarr[0].hist(post['beta1'])
 axarr[0].set_title('beta1')
@@ -140,34 +135,30 @@ axarr[1].plot(np.ones(len(yline))*np.mean(post_f0),yline,'k-',linewidth=2)
 axarr[1].plot(np.ones(len(yline))*np.percentile(post_f0,2.5),yline,'k--')
 axarr[1].plot(np.ones(len(yline))*np.percentile(post_f0,97.5),yline,'k--')
 #-- sigma
-yhist, xhist, _  = axarr[1].hist(post_sigma)
-axarr[1].set_title('post_sigma')
+yhist, xhist, _  = axarr[2].hist(post_sigma)
+axarr[2].set_title('post_sigma')
 yline = np.arange(np.max(yhist))
-axarr[1].plot(np.ones(len(yline))*np.mean(post_sigma),yline,'k-',linewidth=2)
-axarr[1].plot(np.ones(len(yline))*np.percentile(post_sigma,2.5),yline,'k--')
-axarr[1].plot(np.ones(len(yline))*np.percentile(post_sigma,97.5),yline,'k--')
-
+axarr[2].plot(np.ones(len(yline))*np.mean(post_sigma),yline,'k-',linewidth=2)
+axarr[2].plot(np.ones(len(yline))*np.percentile(post_sigma,2.5),yline,'k--')
+axarr[2].plot(np.ones(len(yline))*np.percentile(post_sigma,97.5),yline,'k--')
+plt.tight_layout()
 
 ##--Profiles--##
 zs = np.arange(1,1001) #input depth variables for plot
-fpred = post_f0*(zs/100.)**post_b
-print fpred.shape
+fpred = np.zeros((len(zs),len(post_f0)))
+for i in range(len(zs)):
+	fpred[i,:] = post_f0[:]*(zs[i]/100.)**post_b[:]
+
 
 f2,axarr = plt.subplots(2,1, figsize=(6,8))
-axarr[0].plot(np.mean(fpred,axis=0),zd)
-axarr[0].set_ylim(ax[0].get_ylim()[::-1])
-"""
-par(mfrow=c(1,2))
-        plot(rowMeans(fpred),zs,ylim=c(max(zs),0),type='l',xlim=range(fpred))
-        abline(h=100)
-        lines(apply(fpred,1,function(x) quantile(x,0.025)),zs)
-        lines(apply(fpred,1,function(x) quantile(x,0.975)),zs)
+ind_list = [np.arange(1000),np.arange(100,1000)]
+for i,j in zip([0,1],ind_list):
+	axarr[i].plot(np.mean(fpred[j],axis=1),zs[j],'k-')
+	axarr[i].plot(np.percentile(fpred[j],2.5,axis=1),zs[j],color='orange',linestyle='--')
+	axarr[i].plot(np.percentile(fpred[j],97.5,axis=1),zs[j],color='orange',linestyle='--')
+	axarr[i].set_ylim(axarr[i].get_ylim()[::-1])
+	axarr[i].set_ylabel('Depth')
+	axarr[i].set_xlabel('fpred')
 
-        i <- 100:1000
-        plot(rowMeans(fpred[i,]),zs[i],ylim=c(max(zs[i]),0),type='l',xlim=range(fpred[i,]))
-        abline(h=100)
-        lines(apply(fpred[i,],1,function(x) quantile(x,0.025)),zs[i])
-        lines(apply(fpred[i,],1,function(x) quantile(x,0.975)),zs[i])
-"""
 plt.tight_layout()
 plt.show()
