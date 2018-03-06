@@ -44,11 +44,16 @@ ind = np.union1d(np.union1d(ind1,ind2),ind3)
 
 d = {}
 for c in d0.columns:
-	d[c] = d0[c][ind].values
+	#d[c] = d0[c][ind].values
 	#-- leave nan values in:
 	#d[c] = d0[c].values
+	#-- use just 50 elements for testing for now
+	d[c] = d0[c][ind][:50].values
+
+print('Reduced rows to common indices.')
 
 n = len(d[c])
+print('number of data points = %i'%n)
 #-- extract date from the sting format (1991-07-18T00:00:00)
 years = np.array([d['start'][i][:4] for i in range(n)],dtype=np.int)
 months = np.array([(d['start'][i][5:7]) for i in range(n)],dtype=np.int)
@@ -81,6 +86,7 @@ for i,v in zip([0,1,2],['flux_poc','flux_pon','flux_pop']):
 	ax[1,i].set_ylabel('depth')
 	ax[1,i].set_xlabel(v)
 
+print('Plotted data.')
 
 #########################################
 ## Package the data for Stan ############
@@ -101,7 +107,11 @@ else:
 	with open(compiled_file, 'wb') as f:
 	    pickle.dump(mod, f)
 
-fit = mod.sampling(data=dat, iter=2000, chains=4, warmup=1000) #fit model
+print('Compiled Model.')
+
+#fit = mod.sampling(data=dat, iter=2000, chains=4, warmup=1000) #fit model
+fit = mod.sampling(data=dat, iter=100, chains=2, warmup=50) #fit model
+print('Fit model.')
 
 #######################################################
 ## Analyze Stan output ################################

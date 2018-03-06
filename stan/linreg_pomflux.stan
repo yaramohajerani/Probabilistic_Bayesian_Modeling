@@ -1,9 +1,9 @@
 data {
 	int N; //extract parameter N from data
-	int Npred; //number of data points to give a prediction
+	//int Npred; //number of data points to give a prediction
 	vector[N] x; //extract x variable from data
 	vector[N] y; //extract y variable from data
-	vector[Npred] zpred; //places where you want a prediction
+	//vector[Npred] zpred; //places where you want a prediction
 }
 parameters {
 	real beta0; //declare beta0 as continuous unbounded probability distribution
