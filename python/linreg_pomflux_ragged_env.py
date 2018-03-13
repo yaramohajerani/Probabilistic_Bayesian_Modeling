@@ -28,8 +28,10 @@ def fit_var(var,env,min_stn,max_stn,niter,nchains,nwarm,PLOT):
     print('Plotting: %s'%PLOT)
     if env == 0:
         print('Intercept is based on %s. Slope is sampled from normal distribution.'%var)
+        env_config = 'intercept'
     elif env == 1:
         print('Slope is based on %s. Intercept is sampled from normal distribution.'%var)
+        env_config = 'slope'
     print('Fit configurations: iterations=%i , chain=%i, warmup=%i'%(niter,nchains,nwarm))
 
     #######################################################
@@ -85,10 +87,7 @@ def fit_var(var,env,min_stn,max_stn,niter,nchains,nwarm,PLOT):
     ## Fit Stan model #####################################
     #######################################################
     #-- First check if the compiled file exists. If not, compile model.
-    if env == 0:
-        model_name = 'linreg_pomflux_ragged_env-intercept'
-    elif env == 1"
-        model_name = 'linreg_pomflux_ragged_env-slope'
+    model_name = 'linreg_pomflux_ragged_env-%s'%env_config
     compiled_file = os.path.join(ddir,'%s.pkl'%model_name)
     if os.path.isfile(compiled_file):
     	mod = pickle.load(open(compiled_file, 'rb'))
@@ -103,6 +102,7 @@ def fit_var(var,env,min_stn,max_stn,niter,nchains,nwarm,PLOT):
 
     fit = mod.sampling(data=dat, iter=niter, chains=nchains, warmup=nwarm) #fit model
     print('Fit model.')
+    print fit.summary()
 
     #######################################################
     ## Analyze Stan output ################################
@@ -114,7 +114,7 @@ def fit_var(var,env,min_stn,max_stn,niter,nchains,nwarm,PLOT):
         f1, axarr = plt.subplots(p, 1, figsize=(8,8))
         f1.suptitle('beta0')
         for i in range(p):
-            yhist, xhist, _ = axarr[i].hist(post['beta0'][:,i])
+            yhist, xhist, _ = axarr[i].hist(post['beta0'][:,i],bins=np.int(np.sqrt(len(post['beta0'][:,i]))))
             #-- make y axis for plotting vertical lines
             yline = np.arange(np.max(yhist))
             if env==0:
@@ -131,7 +131,7 @@ def fit_var(var,env,min_stn,max_stn,niter,nchains,nwarm,PLOT):
         f2, axarr = plt.subplots(p, 1, figsize=(8,8))
         f2.suptitle('beta1')
         for i in range(p):
-            yhist, xhist, _ = axarr[i].hist(post['beta1'][:,i])
+            yhist, xhist, _ = axarr[i].hist(post['beta1'][:,i],bins=np.int(np.sqrt(len(post['beta1'][:,i]))))
             #-- make y axis for plotting vertical lines
             yline = np.arange(np.max(yhist))
             if env==1:
@@ -145,13 +145,39 @@ def fit_var(var,env,min_stn,max_stn,niter,nchains,nwarm,PLOT):
             %(var,min_stn,max_stn,niter,nchains,nwarm)),format='pdf')
         plt.close(f2)
 
+    #-- the environmental dependence histograms are always plotted (since the # of graphs doesn't
+    #-- increase with the number of stations.)
+    f3, axarr = plt.subplots(2, 1, figsize=(8,8))
+    f3.suptitle("Dependence of %s on %s"%(env_config,var))
+    for i in range(2):
+        yhist, xhist, _ = axarr[i].hist(post['betaV%i'%i][:,i],bins=np.int(np.sqrt(len(post['betaV%i'%i][:,i]))))
+        #-- make y axis for plotting vertical lines
+        yline = np.arange(np.max(yhist))
+        axarr[i].plot(np.ones(len(yline))*np.mean(post['betaV%i'%i][:,i]),yline,'k-',linewidth=2)
+        axarr[i].plot(np.ones(len(yline))*np.percentile(post['betaV%i'%i][:,i],2.5),yline,'k--')
+        axarr[i].plot(np.ones(len(yline))*np.percentile(post['betaV%i'%i][:,i],97.5),yline,'k--')
+        axarr[i].set_title = 'betaV%i'%i
+
+    plt.tight_layout()
+    plt.savefig(os.path.join(outdata,'%s_environmental-dependence_histogram_stn%i-%i_%iiter_%ichains_%iwarmup.pdf'\
+        %(var,min_stn,max_stn,niter,nchains,nwarm)),format='pdf')
+    plt.close(f3)
+
     #-- write results to file
     f = open(os.path.join(outdata,'%s_stn%i-%i_%iiter_%ichains_%iwarmup.txt'\
         %(var,min_stn,max_stn,niter,nchains,nwarm)),'w')
     for i in range(p):
-        f.write("Stn %i: slope = %.4f (%.4f-%.4f) ; intercept =  %.4f (%.4f-%.4f)\n"%(station_nums[i],\
+        f.write("Stn %i: slope = %.4f (%.4f-%.4f) std=%.4f; intercept =  %.4f (%.4f-%.4f) std=%.4f\n"%(station_nums[i],\
             np.mean(post['beta1'][:,i]),np.percentile(post['beta1'][:,i],2.5),np.percentile(post['beta1'][:,i],97.5),\
-            np.mean(post['beta0'][:,i]),np.percentile(post['beta0'][:,i],2.5),np.percentile(post['beta0'][:,i],97.5)))
+            np.std(post['beta1'][:,i]),np.mean(post['beta0'][:,i]),np.percentile(post['beta0'][:,i],2.5),\
+            np.percentile(post['beta0'][:,i],97.5),np.std(post['beta0'][:,i])))
+
+    f.write("Slope between %s and %ss = %.4f (%.4f-%.4f) std=%.4f\n"%(var,env_config,np.mean(post['betaV1'][:,i])\
+        ,np.percentile(post['betaV1'][:,i],2.5),np.percentile(post['betaV1'][:,i],97.5),np.std(post['betaV1'][:,i])))
+    f.write("Intercept between %s and %ss = %.4f (%.4f-%.4f) std=%.4f\n"%(var,env_config,np.mean(post['betaV0'][:,i])\
+        ,np.percentile(post['betaV0'][:,i],2.5),np.percentile(post['betaV0'][:,i],97.5),np.std(post['betaV0'][:,i])))
+
+    f.close()
 
 #-- help function for usage
 def usage_info():
