@@ -23,7 +23,7 @@ indata = os.path.abspath(os.path.join(os.path.dirname( __file__ ), '../..', 'sta
 outdata = os.path.abspath(os.path.join(os.path.dirname( __file__ ), '../..', 'stan_data.dir/outdata.dir'))
 
 
-def fit_var(var,env,min_stn,max_stn,niter,nchains,nwarm,PLOT):
+def fit_var(var,env,min_stn,max_stn,niter,nchains,nwarm,PLOT,NP):
     print('looking at stations %i to %i.'%(min_stn,max_stn))
     print('Plotting: %s'%PLOT)
     if env == 0:
@@ -33,6 +33,7 @@ def fit_var(var,env,min_stn,max_stn,niter,nchains,nwarm,PLOT):
         print('Slope is based on %s. Intercept is sampled from normal distribution.'%var)
         env_config = 'slope'
     print('Fit configurations: iterations=%i , chain=%i, warmup=%i'%(niter,nchains,nwarm))
+    print('Number of parallel processes = %i'%NP)
 
     #######################################################
     ## Setup your data ####################################
@@ -100,46 +101,47 @@ def fit_var(var,env,min_stn,max_stn,niter,nchains,nwarm,PLOT):
 
     print('Compiled Model.')
 
-    fit = mod.sampling(data=dat, iter=niter, chains=nchains, warmup=nwarm) #fit model
+    fit = mod.sampling(data=dat, iter=niter, chains=nchains, warmup=nwarm,n_jobs=NP) #fit model
     print('Fit model.')
-    print fit.summary()
+    print(fit)
 
     #######################################################
     ## Analyze Stan output ################################
     #######################################################
     post = fit.extract(permuted=True)   #extract samples
-    print(post.keys())        	    #contains lists of samples for posterior of beta0, beta1, sigma, lp
 
     if PLOT in ['y','Y']:
-        f1, axarr = plt.subplots(p, 1, figsize=(8,8))
-        f1.suptitle('beta0')
+        f1, axarr = plt.subplots(p, 1, figsize=(8,10))
+        #f1.suptitle('beta0')
         for i in range(p):
-            yhist, xhist, _ = axarr[i].hist(post['beta0'][:,i],bins=np.int(np.sqrt(len(post['beta0'][:,i]))))
+            yhist, xhist, _ = axarr[i].hist(post['beta0'][:,i],bins=np.int(np.sqrt(len(post['beta0'][:,i])))\
+                ,color='grey')
             #-- make y axis for plotting vertical lines
             yline = np.arange(np.max(yhist))
-            if env==0:
+            if env==1:
                 axarr[i].plot(np.ones(len(yline))*post['beta0mean'][i],yline,'r-',linewidth=2)
             axarr[i].plot(np.ones(len(yline))*np.mean(post['beta0'][:,i]),yline,'k-',linewidth=2)
             axarr[i].plot(np.ones(len(yline))*np.percentile(post['beta0'][:,i],2.5),yline,'k--')
             axarr[i].plot(np.ones(len(yline))*np.percentile(post['beta0'][:,i],97.5),yline,'k--')
-            axarr[i].set_title = 'beta0 (%i)'%i
+            axarr[i].set_title('beta0, stn #%i'%station_nums[i])
         plt.tight_layout()
         plt.savefig(os.path.join(outdata,'%s_beta0_histogram_stn%i-%i_%iiter_%ichains_%iwarmup.pdf'\
             %(var,min_stn,max_stn,niter,nchains,nwarm)),format='pdf')
         plt.close(f1)
 
-        f2, axarr = plt.subplots(p, 1, figsize=(8,8))
-        f2.suptitle('beta1')
+        f2, axarr = plt.subplots(p, 1, figsize=(8,10))
+        #f2.suptitle('beta1')
         for i in range(p):
-            yhist, xhist, _ = axarr[i].hist(post['beta1'][:,i],bins=np.int(np.sqrt(len(post['beta1'][:,i]))))
+            yhist, xhist, _ = axarr[i].hist(post['beta1'][:,i],bins=np.int(np.sqrt(len(post['beta1'][:,i]))),\
+                color='grey')
             #-- make y axis for plotting vertical lines
             yline = np.arange(np.max(yhist))
-            if env==1:
+            if env==0:
                 axarr[i].plot(np.ones(len(yline))*post['beta1mean'][i],yline,'r-',linewidth=2)
             axarr[i].plot(np.ones(len(yline))*np.mean(post['beta1'][:,i]),yline,'k-',linewidth=2)
             axarr[i].plot(np.ones(len(yline))*np.percentile(post['beta1'][:,i],2.5),yline,'k--')
             axarr[i].plot(np.ones(len(yline))*np.percentile(post['beta1'][:,i],97.5),yline,'k--')
-            axarr[i].set_title = 'beta1 (%i)'%i
+            axarr[i].set_title('beta1, stn #%i'%station_nums[i])
         plt.tight_layout()
         plt.savefig(os.path.join(outdata,'%s_beta1_histogram_stn%i-%i_%iiter_%ichains_%iwarmup.pdf'\
             %(var,min_stn,max_stn,niter,nchains,nwarm)),format='pdf')
@@ -150,15 +152,16 @@ def fit_var(var,env,min_stn,max_stn,niter,nchains,nwarm,PLOT):
     f3, axarr = plt.subplots(2, 1, figsize=(8,8))
     f3.suptitle("Dependence of %s on %s"%(env_config,var))
     for i in range(2):
-        yhist, xhist, _ = axarr[i].hist(post['betaV%i'%i][:,i],bins=np.int(np.sqrt(len(post['betaV%i'%i][:,i]))))
+        yhist, xhist, _ = axarr[i].hist(post['betaV%i'%i],bins=np.int(np.sqrt(len(post['betaV%i'%i]))),\
+            color='grey')
         #-- make y axis for plotting vertical lines
         yline = np.arange(np.max(yhist))
-        axarr[i].plot(np.ones(len(yline))*np.mean(post['betaV%i'%i][:,i]),yline,'k-',linewidth=2)
-        axarr[i].plot(np.ones(len(yline))*np.percentile(post['betaV%i'%i][:,i],2.5),yline,'k--')
-        axarr[i].plot(np.ones(len(yline))*np.percentile(post['betaV%i'%i][:,i],97.5),yline,'k--')
-        axarr[i].set_title = 'betaV%i'%i
+        axarr[i].plot(np.ones(len(yline))*np.mean(post['betaV%i'%i]),yline,'k-',linewidth=2)
+        axarr[i].plot(np.ones(len(yline))*np.percentile(post['betaV%i'%i],2.5),yline,'k--')
+        axarr[i].plot(np.ones(len(yline))*np.percentile(post['betaV%i'%i],97.5),yline,'k--')
+        axarr[i].set_title("betaV%i"%i)
 
-    plt.tight_layout()
+    #plt.tight_layout()
     plt.savefig(os.path.join(outdata,'%s_environmental-dependence_histogram_stn%i-%i_%iiter_%ichains_%iwarmup.pdf'\
         %(var,min_stn,max_stn,niter,nchains,nwarm)),format='pdf')
     plt.close(f3)
@@ -167,15 +170,15 @@ def fit_var(var,env,min_stn,max_stn,niter,nchains,nwarm,PLOT):
     f = open(os.path.join(outdata,'%s_stn%i-%i_%iiter_%ichains_%iwarmup.txt'\
         %(var,min_stn,max_stn,niter,nchains,nwarm)),'w')
     for i in range(p):
-        f.write("Stn %i: slope = %.4f (%.4f-%.4f) std=%.4f; intercept =  %.4f (%.4f-%.4f) std=%.4f\n"%(station_nums[i],\
+        f.write("Stn %i: slope = %.4f (%.4f : %.4f) std=%.4f; intercept =  %.4f (%.4f : %.4f) std=%.4f\n"%(station_nums[i],\
             np.mean(post['beta1'][:,i]),np.percentile(post['beta1'][:,i],2.5),np.percentile(post['beta1'][:,i],97.5),\
             np.std(post['beta1'][:,i]),np.mean(post['beta0'][:,i]),np.percentile(post['beta0'][:,i],2.5),\
             np.percentile(post['beta0'][:,i],97.5),np.std(post['beta0'][:,i])))
 
-    f.write("Slope between %s and %ss = %.4f (%.4f-%.4f) std=%.4f\n"%(var,env_config,np.mean(post['betaV1'][:,i])\
-        ,np.percentile(post['betaV1'][:,i],2.5),np.percentile(post['betaV1'][:,i],97.5),np.std(post['betaV1'][:,i])))
-    f.write("Intercept between %s and %ss = %.4f (%.4f-%.4f) std=%.4f\n"%(var,env_config,np.mean(post['betaV0'][:,i])\
-        ,np.percentile(post['betaV0'][:,i],2.5),np.percentile(post['betaV0'][:,i],97.5),np.std(post['betaV0'][:,i])))
+    f.write("\nSlope between %s and %ss = %.4f (%.4f : %.4f) std=%.4f\n"%(var,env_config,np.mean(post['betaV1'])\
+        ,np.percentile(post['betaV1'],2.5),np.percentile(post['betaV1'],97.5),np.std(post['betaV1'])))
+    f.write("Intercept between %s and %ss = %.4f (%.4f : %.4f) std=%.4f\n"%(var,env_config,np.mean(post['betaV0'])\
+        ,np.percentile(post['betaV0'],2.5),np.percentile(post['betaV0'],97.5),np.std(post['betaV0'])))
 
     f.close()
 
@@ -190,12 +193,14 @@ def usage_info():
     print("--chains=X or -C:X to set number of chains X. Default 4.")
     print("--warmup=X or -W:X to set number of warmup interations X. Default 1000.")
     print("--PLOT=Y or -P:Y to plot histograms. Otherwise set to 'N'. Default 'N'.")
+    print("--NP=X or -n:X to set number of parallel jobs. Defaulr is the the number of chasins.")
 
 #-- main function to get parameters and pass them along to fitting function
 def main():
     #-- Read the system arguments listed after the program
-    long_options = ['help','variable=','min_stn=','max_stn=','iter=','chains=','warmup=','PLOT=','env=']
-    optlist,arglist = getopt.getopt(sys.argv[1:],'hV:i:f:I:C:W:P:E:',long_options)
+    long_options = ['help','variable=','min_stn=','max_stn=','iter=','chains=','warmup=','PLOT=',\
+        'env=','NP=']
+    optlist,arglist = getopt.getopt(sys.argv[1:],'hV:i:f:I:C:W:P:E:n:',long_options)
 
     #-- set defaults
     var = 'npp'
@@ -206,6 +211,7 @@ def main():
     nchains = 4
     nwarm = 1000
     PLOT = 'N'
+    NP = np.copy(nchains)
     #-- set parameters
     for opt, arg in optlist:
         if opt in ("-h","--help"):
@@ -227,9 +233,11 @@ def main():
             nwarm = np.int(arg)
         elif opt in ("-P","--PLOT"):
             PLOT = arg
+        elif opt in ("-n","--NP"):
+            NP = np.int(arg)
 
     #-- pass parameters to fitting function
-    fit_var(var,env,min_stn,max_stn,niter,nchains,nwarm,PLOT)
+    fit_var(var,env,min_stn,max_stn,niter,nchains,nwarm,PLOT,NP)
 
 #-- run main program
 if __name__ == '__main__':
