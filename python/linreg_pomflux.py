@@ -33,7 +33,7 @@ d0 = pd.read_table(os.path.join(indata,'pom_flux','GO_flux.tab'),sep='\t',skipro
 d0.columns = ['id_ref','id','type','lat','lon','trap','depth_bathy','depth','start','end','time','area','flux_pom',\
 'flux_pom_sd','flux_c','flux_c_sd','flux_poc','flux_poc_sd','flux_pic','flux_pic_sd','flux_pon','flux_pon_sd',\
 'flux_pop','flux_pop_sd','flux_psi','flux_psi_sd','flux_psio2','flux_psioh4','flux_pai','flux_pai_sd','flux_chl',\
-'flux_pheop','flux_caco3','flux_caco3_sd','flux_fe','flux_fe_sd','flux_ba','flux_det','flux_ti','ref','url','url2'] 
+'flux_pheop','flux_caco3','flux_caco3_sd','flux_fe','flux_fe_sd','flux_ba','flux_det','flux_ti','ref','url','url2']
 
 #-- remove rows where the depth or desired fluxes are missing
 ind1 = np.squeeze(np.nonzero(~np.isnan(d0['flux_poc'])))
@@ -82,12 +82,14 @@ for i,v in zip([0,1,2],['flux_poc','flux_pon','flux_pop']):
 	ax[1,i].set_ylabel('depth')
 	ax[1,i].set_xlabel(v)
 plt.tight_layout()
+plt.savefig(os.path.join(outdata,'all_station_data.pdf'),format='pdf')
+plt.close(f)
 print('Plotted data.')
 
 #########################################
 ## Package the data for Stan ############
 #########################################
-dat = dict(N=len(logList['flux_poc']),x=logList['depth'], y=logList['flux_poc'])#,zpred=np.arange(501),Npred=501) 
+dat = dict(N=len(logList['flux_poc']),x=logList['depth'], y=logList['flux_poc'])#,zpred=np.arange(501),Npred=501)
 
 #######################################################
 ## Fit Stan model #####################################
@@ -142,6 +144,8 @@ axarr[2].plot(np.ones(len(yline))*np.mean(post_sigma),yline,'k-',linewidth=2)
 axarr[2].plot(np.ones(len(yline))*np.percentile(post_sigma,2.5),yline,'k--')
 axarr[2].plot(np.ones(len(yline))*np.percentile(post_sigma,97.5),yline,'k--')
 plt.tight_layout()
+plt.savefig(os.path.join(outdata,'all_stations_histogram.pdf'),format='pdf')
+plt.close(f2)
 
 ##--Profiles--##
 zs = np.arange(1,1001) #input depth variables for plot
@@ -161,4 +165,5 @@ for i,j in zip([0,1],ind_list):
 	axarr[i].set_xlabel('fpred')
 
 plt.tight_layout()
-plt.show()
+plt.savefig(os.path.join(outdata,'all_station_profiles.pdf'),format='pdf')
+plt.close(f2)
