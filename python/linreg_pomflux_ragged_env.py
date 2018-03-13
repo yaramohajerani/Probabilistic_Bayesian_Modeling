@@ -72,7 +72,7 @@ def fit_var(var,min_stn,max_stn,niter,nchains,nwarm,PLOT):
         var_avg[i] = np.mean(d[var][indstn][ni[i]:ni[i+1]])
 
     #-- package data for Stan
-    dat = dict(N=N, ni=ni, x = d['depth'][indstn], y=d['flux_poc'][indstn], p=p, v=var_avg)
+    dat = dict(N=N, ni=ni, x = np.log(d['depth'][indstn]), y=np.log(d['flux_poc'][indstn]), p=p, v=var_avg)
 
     #######################################################
     ## Fit Stan model #####################################
@@ -106,7 +106,8 @@ def fit_var(var,min_stn,max_stn,niter,nchains,nwarm,PLOT):
             yhist, xhist, _ = axarr[i].hist(post['beta0'][:,i])
             #-- make y axis for plotting vertical lines
             yline = np.arange(np.max(yhist))
-            axarr[i].plot(np.ones(len(yline))*post['beta0mean'][i],yline,'k-',linewidth=2)
+            axarr[i].plot(np.ones(len(yline))*post['beta0mean'][i],yline,'r-',linewidth=2)
+            axarr[i].plot(np.ones(len(yline))*np.mean(post['beta0'][:,i]),yline,'k-',linewidth=2)
             axarr[i].plot(np.ones(len(yline))*np.percentile(post['beta0'][:,i],2.5),yline,'k--')
             axarr[i].plot(np.ones(len(yline))*np.percentile(post['beta0'][:,i],97.5),yline,'k--')
             axarr[i].set_title = 'beta0 (%i)'%i
