@@ -19,7 +19,7 @@ parameters{
 model{
 	for(i in 1:p){ //loop over locations
 		beta0[i] ~ normal(betaV0 + betaV1*v[i],beta0_sd); //location-specific intercept is a function of env variable at the location
-		beta1[i] ~ normal(beta0mean,beta0_sd); //location-specific slope
+		beta1[i] ~ normal(beta1mean,beta1_sd); //location-specific slope
 		y[(ni[i]+1):ni[i+1]] ~ normal(beta0[i] + beta1[i]*x[(ni[i]+1):ni[i+1]], sigma); //likelihood of data, station by station
 	}
 }
