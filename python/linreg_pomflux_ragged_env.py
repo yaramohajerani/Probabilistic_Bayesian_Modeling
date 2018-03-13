@@ -135,8 +135,8 @@ def fit_var(var,min_stn,max_stn,niter,nchains,nwarm,PLOT):
         %(var,min_stn,max_stn,niter,nchains,nwarm)),'w')
     for i in range(p):
         f.write("Stn %i: slope = %.4f (%.4f-%.4f) ; intercept =  %.4f (%.4f-%.4f)\n"%(station_nums[i],\
-            np.mean(post['beta1'][:,i],np.percentile(post['beta1'][:,i],2.5),np.percentile(post['beta1'][:,i],97.5)),\
-            np.mean(post['beta0'][:,i],np.percentile(post['beta0'][:,i],2.5),np.percentile(post['beta0'][:,i],97.5))))
+            np.mean(post['beta1'][:,i]),np.percentile(post['beta1'][:,i],2.5),np.percentile(post['beta1'][:,i],97.5),\
+            np.mean(post['beta0'][:,i]),np.percentile(post['beta0'][:,i],2.5),np.percentile(post['beta0'][:,i],97.5)))
 
 #-- help function for usage
 def usage_info():
