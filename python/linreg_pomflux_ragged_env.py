@@ -23,8 +23,13 @@ indata = os.path.abspath(os.path.join(os.path.dirname( __file__ ), '../..', 'sta
 outdata = os.path.abspath(os.path.join(os.path.dirname( __file__ ), '../..', 'stan_data.dir/outdata.dir'))
 
 
-def fit_var(var,min_stn,max_stn,niter,nchains,nwarm,PLOT):
+def fit_var(var,env,min_stn,max_stn,niter,nchains,nwarm,PLOT):
     print('looking at stations %i to %i.'%(min_stn,max_stn))
+    print('Plotting: %s'%PLOT)
+    if env == 0:
+        print('Intercept is based on %s. Slope is sampled from normal distribution.'%var)
+    elif env == 1:
+        print('Slope is based on %s. Intercept is sampled from normal distribution.'%var)
     print('Fit configurations: iterations=%i , chain=%i, warmup=%i'%(niter,nchains,nwarm))
 
     #######################################################
@@ -72,17 +77,23 @@ def fit_var(var,min_stn,max_stn,niter,nchains,nwarm,PLOT):
         var_avg[i] = np.mean(d[var][indstn][ni[i]:ni[i+1]])
 
     #-- package data for Stan
-    dat = dict(N=N, ni=ni, x = np.log(d['depth'][indstn]), y=np.log(d['flux_poc'][indstn]), p=p, v=var_avg)
+    X = np.log(d['depth'][indstn]/100.)
+    Y = np.log(d['flux_poc'][indstn])
+    dat = dict(N=N, ni=ni, x = X, y= Y, p=p, v=var_avg)
 
     #######################################################
     ## Fit Stan model #####################################
     #######################################################
     #-- First check if the compiled file exists. If not, compile model.
-    compiled_file = os.path.join(ddir,'linreg_pomflux_ragged_env.pkl')
+    if env == 0:
+        model_name = 'linreg_pomflux_ragged_env-intercept'
+    elif env == 1"
+        model_name = 'linreg_pomflux_ragged_env-slope'
+    compiled_file = os.path.join(ddir,'%s.pkl'%model_name)
     if os.path.isfile(compiled_file):
     	mod = pickle.load(open(compiled_file, 'rb'))
     else:
-    	mod = pystan.StanModel(os.path.join(stan_dir,'linreg_pomflux_ragged_env.stan')) #pre-compile
+    	mod = pystan.StanModel(os.path.join(stan_dir,'%s.stan'%model_name)) #pre-compile
 
     	# save it to the file 'model.pkl' for later use
     	with open(compiled_file, 'wb') as f:
@@ -106,7 +117,8 @@ def fit_var(var,min_stn,max_stn,niter,nchains,nwarm,PLOT):
             yhist, xhist, _ = axarr[i].hist(post['beta0'][:,i])
             #-- make y axis for plotting vertical lines
             yline = np.arange(np.max(yhist))
-            axarr[i].plot(np.ones(len(yline))*post['beta0mean'][i],yline,'r-',linewidth=2)
+            if env==0:
+                axarr[i].plot(np.ones(len(yline))*post['beta0mean'][i],yline,'r-',linewidth=2)
             axarr[i].plot(np.ones(len(yline))*np.mean(post['beta0'][:,i]),yline,'k-',linewidth=2)
             axarr[i].plot(np.ones(len(yline))*np.percentile(post['beta0'][:,i],2.5),yline,'k--')
             axarr[i].plot(np.ones(len(yline))*np.percentile(post['beta0'][:,i],97.5),yline,'k--')
@@ -122,6 +134,8 @@ def fit_var(var,min_stn,max_stn,niter,nchains,nwarm,PLOT):
             yhist, xhist, _ = axarr[i].hist(post['beta1'][:,i])
             #-- make y axis for plotting vertical lines
             yline = np.arange(np.max(yhist))
+            if env==1:
+                axarr[i].plot(np.ones(len(yline))*post['beta1mean'][i],yline,'r-',linewidth=2)
             axarr[i].plot(np.ones(len(yline))*np.mean(post['beta1'][:,i]),yline,'k-',linewidth=2)
             axarr[i].plot(np.ones(len(yline))*np.percentile(post['beta1'][:,i],2.5),yline,'k--')
             axarr[i].plot(np.ones(len(yline))*np.percentile(post['beta1'][:,i],97.5),yline,'k--')
@@ -143,6 +157,7 @@ def fit_var(var,min_stn,max_stn,niter,nchains,nwarm,PLOT):
 def usage_info():
     print("--help or -h to display help information.")
     print("--variable=X or -V:X to choose environmental variable for fit. Default npp.")
+    print("--env=X or -E:X to choose if slope or intercept is based on environment.\n\t '0' for intercept and '1' for slope. Default = 0")
     print("--min_stn=X or -i:X to set intial station number X. Default 1.")
     print("--max_stn=X or -f:X to set intial station number X. Default 840.")
     print("--iter=X or -I:X to set number of interations X. Default 2000.")
@@ -153,11 +168,12 @@ def usage_info():
 #-- main function to get parameters and pass them along to fitting function
 def main():
     #-- Read the system arguments listed after the program
-    long_options = ['help','variable=','min_stn=','max_stn=','iter=','chains=','warmup=','PLOT=']
-    optlist,arglist = getopt.getopt(sys.argv[1:],'hV:i:f:I:C:W:P:',long_options)
+    long_options = ['help','variable=','min_stn=','max_stn=','iter=','chains=','warmup=','PLOT=','env=']
+    optlist,arglist = getopt.getopt(sys.argv[1:],'hV:i:f:I:C:W:P:E:',long_options)
 
     #-- set defaults
     var = 'npp'
+    env = 0
     min_stn = 1
     max_stn = 840
     niter = 2000
@@ -171,6 +187,8 @@ def main():
             sys.exit()
         elif opt in ("-V","--variable"):
             var = arg
+        elif opt in ("-E","--env"):
+            env = np.int(arg)
         elif opt in ("-i","--min_stn"):
             min_stn = np.int(arg)
         elif opt in ("-f","--max_stn"):
@@ -185,7 +203,7 @@ def main():
             PLOT = arg
 
     #-- pass parameters to fitting function
-    fit_var(var,min_stn,max_stn,niter,nchains,nwarm,PLOT)
+    fit_var(var,env,min_stn,max_stn,niter,nchains,nwarm,PLOT)
 
 #-- run main program
 if __name__ == '__main__':
