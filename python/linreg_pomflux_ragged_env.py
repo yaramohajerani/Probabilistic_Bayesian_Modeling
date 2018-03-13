@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 u"""
-
+linreg_pomflux_ragged_env.py
 by Yara Mohajerani (03/2018)
 """
 import os
@@ -23,7 +23,7 @@ indata = os.path.abspath(os.path.join(os.path.dirname( __file__ ), '../..', 'sta
 outdata = os.path.abspath(os.path.join(os.path.dirname( __file__ ), '../..', 'stan_data.dir/outdata.dir'))
 
 
-def fit_npp(min_stn,max_stn,niter,nchains,nwarm,PLOT):
+def fit_var(var,min_stn,max_stn,niter,nchains,nwarm,PLOT):
     print('looking at stations %i to %i.'%(min_stn,max_stn))
     print('Fit configurations: iterations=%i , chain=%i, warmup=%i'%(niter,nchains,nwarm))
 
@@ -34,13 +34,13 @@ def fit_npp(min_stn,max_stn,niter,nchains,nwarm,PLOT):
 
     #-- remove rows where the depth or desired fluxes are missing
     ind1 = np.squeeze(np.nonzero(~np.isnan(d0['flux_poc'])))
-    ind2 = np.squeeze(np.nonzero(~np.isnan(d0['npp'])))
+    ind2 = np.squeeze(np.nonzero(~np.isnan(d0[var])))
     #-- get intersection
     ind = list(set(ind1) & set(ind2))
 
     #-- remove nans and convert to dictionarties with python arrays (easier to work with)
     d = {}
-    for c in ['id','depth','flux_poc','npp']:
+    for c in ['id','depth','flux_poc',var]:
     	d[c] = d0[c][ind].values
 
     #-- only look at the first 10 stations to beging with
@@ -66,23 +66,23 @@ def fit_npp(min_stn,max_stn,niter,nchains,nwarm,PLOT):
     ni = np.concatenate([np.array([0]),np.cumsum(n)])
     ni = np.array(ni,dtype=np.int)
 
-    #-- average all the NPPs for each station
-    npp_avg = np.zeros(p)
+    #-- average all the environmental values for each station
+    var_avg = np.zeros(p)
     for i in range(p):
-        npp_avg[i] = np.mean(d['npp'][indstn][ni[i]:ni[i+1]])
+        var_avg[i] = np.mean(d[var][indstn][ni[i]:ni[i+1]])
 
     #-- package data for Stan
-    dat = dict(N=N, ni=ni, x = d['depth'][indstn], y=d['flux_poc'][indstn], p=p, npp=npp_avg)
+    dat = dict(N=N, ni=ni, x = d['depth'][indstn], y=d['flux_poc'][indstn], p=p, v=var_avg)
 
     #######################################################
     ## Fit Stan model #####################################
     #######################################################
     #-- First check if the compiled file exists. If not, compile model.
-    compiled_file = os.path.join(ddir,'linreg_pomflux_ragged_npp.pkl')
+    compiled_file = os.path.join(ddir,'linreg_pomflux_ragged_env.pkl')
     if os.path.isfile(compiled_file):
     	mod = pickle.load(open(compiled_file, 'rb'))
     else:
-    	mod = pystan.StanModel(os.path.join(stan_dir,'linreg_pomflux_ragged_npp.stan')) #pre-compile
+    	mod = pystan.StanModel(os.path.join(stan_dir,'linreg_pomflux_ragged_env.stan')) #pre-compile
 
     	# save it to the file 'model.pkl' for later use
     	with open(compiled_file, 'wb') as f:
@@ -111,8 +111,8 @@ def fit_npp(min_stn,max_stn,niter,nchains,nwarm,PLOT):
             axarr[i].plot(np.ones(len(yline))*np.percentile(post['beta0'][:,i],97.5),yline,'k--')
             axarr[i].set_title = 'beta0 (%i)'%i
         plt.tight_layout()
-        plt.savefig(os.path.join(outdata,'npp_beta0_histogram_stn%i-%i_%iiter_%ichains_%iwarmup.pdf'\
-            %(min_stn,max_stn,niter,nchains,nwarm)),format='pdf')
+        plt.savefig(os.path.join(outdata,'%s_beta0_histogram_stn%i-%i_%iiter_%ichains_%iwarmup.pdf'\
+            %(var,min_stn,max_stn,niter,nchains,nwarm)),format='pdf')
         plt.close(f1)
 
         f2, axarr = plt.subplots(p, 1, figsize=(8,8))
@@ -126,13 +126,13 @@ def fit_npp(min_stn,max_stn,niter,nchains,nwarm,PLOT):
             axarr[i].plot(np.ones(len(yline))*np.percentile(post['beta1'][:,i],97.5),yline,'k--')
             axarr[i].set_title = 'beta1 (%i)'%i
         plt.tight_layout()
-        plt.savefig(os.path.join(outdata,'npp_beta1_histogram_stn%i-%i_%iiter_%ichains_%iwarmup.pdf'\
-            %(min_stn,max_stn,niter,nchains,nwarm)),format='pdf')
+        plt.savefig(os.path.join(outdata,'%s_beta1_histogram_stn%i-%i_%iiter_%ichains_%iwarmup.pdf'\
+            %(var,min_stn,max_stn,niter,nchains,nwarm)),format='pdf')
         plt.close(f2)
 
     #-- write results to file
-    f = open(os.path.join(outdata,'npp_beta1_histogram_stn%i-%i_%iiter_%ichains_%iwarmup.txt'\
-        %(min_stn,max_stn,niter,nchains,nwarm)),'w')
+    f = open(os.path.join(outdata,'%s_stn%i-%i_%iiter_%ichains_%iwarmup.txt'\
+        %(var,min_stn,max_stn,niter,nchains,nwarm)),'w')
     for i in range(p):
         f.write("Stn %i: slope = %.4f (%.4f-%.4f) ; intercept =  %.4f (%.4f-%.4f)\n"%(station_nums[i],\
             np.mean(post['beta1'][:,i],np.percentile(post['beta1'][:,i],2.5),np.percentile(post['beta1'][:,i],97.5)),\
@@ -140,21 +140,23 @@ def fit_npp(min_stn,max_stn,niter,nchains,nwarm,PLOT):
 
 #-- help function for usage
 def usage_info():
-    print("--help or h to display help information.")
-    print("--min_stn=X or i:X to set intial station number X. Default 1.")
-    print("--max_stn=X or f:X to set intial station number X. Default 840.")
-    print("--iter=X or I:X to set number of interations X. Default 2000.")
-    print("--chains=X or C:X to set number of chains X. Default 4.")
-    print("--warmup=X or W:X to set number of warmup interations X. Default 1000.")
-    print("--PLOT=Y or P:Y to plot histograms. Otherwise set to 'N'. Default 'N'.")
+    print("--help or -h to display help information.")
+    print("--variable=X or -V:X to choose environmental variable for fit. Default npp.")
+    print("--min_stn=X or -i:X to set intial station number X. Default 1.")
+    print("--max_stn=X or -f:X to set intial station number X. Default 840.")
+    print("--iter=X or -I:X to set number of interations X. Default 2000.")
+    print("--chains=X or -C:X to set number of chains X. Default 4.")
+    print("--warmup=X or -W:X to set number of warmup interations X. Default 1000.")
+    print("--PLOT=Y or -P:Y to plot histograms. Otherwise set to 'N'. Default 'N'.")
 
 #-- main function to get parameters and pass them along to fitting function
 def main():
     #-- Read the system arguments listed after the program
-    long_options = ['help','min_stn=','max_stn=','iter=','chains=','warmup=','PLOT=']
-    optlist,arglist = getopt.getopt(sys.argv[1:],'hi:f:I:C:W:P:',long_options)
+    long_options = ['help','variable=','min_stn=','max_stn=','iter=','chains=','warmup=','PLOT=']
+    optlist,arglist = getopt.getopt(sys.argv[1:],'hV:i:f:I:C:W:P:',long_options)
 
     #-- set defaults
+    var = 'npp'
     min_stn = 1
     max_stn = 840
     niter = 2000
@@ -163,24 +165,26 @@ def main():
     PLOT = 'N'
     #-- set parameters
     for opt, arg in optlist:
-        if opt in ("h","--help"):
+        if opt in ("-h","--help"):
             usage_info()
             sys.exit()
-        if opt in ("-i","--min_stn"):
+        elif opt in ("-V","--variable"):
+            var = arg
+        elif opt in ("-i","--min_stn"):
             min_stn = np.int(arg)
         elif opt in ("-f","--max_stn"):
             max_stn = np.int(arg)
-        elif opt in ("I","--iter"):
+        elif opt in ("-I","--iter"):
             niter = np.int(arg)
-        elif opt in ("C","--chains"):
+        elif opt in ("-C","--chains"):
             nchains = np.int(arg)
-        elif opt in ("W","--warmup"):
+        elif opt in ("-W","--warmup"):
             nwarm = np.int(arg)
-        elif opt in ("P","--PLOT"):
+        elif opt in ("-P","--PLOT"):
             PLOT = arg
 
     #-- pass parameters to fitting function
-    fit_npp(min_stn,max_stn,niter,nchains,nwarm,PLOT)
+    fit_var(var,min_stn,max_stn,niter,nchains,nwarm,PLOT)
 
 #-- run main program
 if __name__ == '__main__':
