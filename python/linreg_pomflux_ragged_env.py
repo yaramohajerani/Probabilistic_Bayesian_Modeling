@@ -191,14 +191,22 @@ def fit_var(var,var2,env,min_stn,max_stn,niter,nchains,nwarm,PLOT,NP):
         f3.suptitle("Dependence of intercept on %s and slope on %s"%(var,var2))
         for i in range(2):
             for j in range(2):
-                yhist, xhist, _ = axarr[i].hist(post['beta%iV%j'%(i,j)],bins=np.int(np.sqrt(len(post['beta%iV%j'%(i,j)])\
+                yhist, xhist, _ = axarr[i,j].hist(post['beta%iV%i'%(i,j)],bins=np.int(np.sqrt(len(post['beta%iV%i'%(i,j)])\
                     )),color='grey')
                 #-- make y axis for plotting vertical lines
                 yline = np.arange(np.max(yhist))
-                axarr[i,j].plot(np.ones(len(yline))*np.mean(post['beta%iV%j'%(i,j)]),yline,'k-',linewidth=2)
-                axarr[i,j].plot(np.ones(len(yline))*np.percentile(post['beta%iV%j'%(i,j)],2.5),yline,'k--')
-                axarr[i,j].plot(np.ones(len(yline))*np.percentile(post['beta%iV%j'%(i,j)],97.5),yline,'k--')
-                axarr[i,j].set_title('beta%iV%j'%(i,j))
+                axarr[i,j].plot(np.ones(len(yline))*np.mean(post['beta%iV%i'%(i,j)]),yline,'k-',linewidth=2)
+                axarr[i,j].plot(np.ones(len(yline))*np.percentile(post['beta%iV%i'%(i,j)],2.5),yline,'k--')
+                axarr[i,j].plot(np.ones(len(yline))*np.percentile(post['beta%iV%i'%(i,j)],97.5),yline,'k--')
+                if i==0:
+                    str1 = 'intercepts'
+                elif i==1:
+                    str1 = 'slopes'
+                if j==0:
+                    str2 = 'intercept'
+                elif j==1:
+                    str2 = 'slope'
+                axarr[i,j].set_title('%s of %s'%(str2,str1))
 
         #plt.tight_layout()
         plt.savefig(os.path.join(outdata,'%s_env-params_histogram_stn%i-%i_%iiter_%ichains_%iwarmup.pdf'\
@@ -223,11 +231,11 @@ def fit_var(var,var2,env,min_stn,max_stn,niter,nchains,nwarm,PLOT,NP):
     else:
         f.write("\nSlope between %s and %ss = %.4f (%.4f : %.4f) std=%.4f\n"%(var,'intercept',np.mean(post['beta0V1'])\
             ,np.percentile(post['beta0V1'],2.5),np.percentile(post['beta0V1'],97.5),np.std(post['beta0V1'])))
-        f.write("\nIntercept between %s and %ss = %.4f (%.4f : %.4f) std=%.4f\n"%(var,'intercept',np.mean(post['beta0V0'])\
+        f.write("Intercept between %s and %ss = %.4f (%.4f : %.4f) std=%.4f\n"%(var,'intercept',np.mean(post['beta0V0'])\
             ,np.percentile(post['beta0V0'],2.5),np.percentile(post['beta0V0'],97.5),np.std(post['beta0V0'])))
-        f.write("\nSlope between %s and %ss = %.4f (%.4f : %.4f) std=%.4f\n"%(var,'slope',np.mean(post['beta1V1'])\
+        f.write("Slope between %s and %ss = %.4f (%.4f : %.4f) std=%.4f\n"%(var,'slope',np.mean(post['beta1V1'])\
             ,np.percentile(post['beta1V1'],2.5),np.percentile(post['beta1V1'],97.5),np.std(post['beta1V1'])))
-        f.write("\nIntercept between %s and %ss = %.4f (%.4f : %.4f) std=%.4f\n"%(var,'slope',np.mean(post['beta1V0'])\
+        f.write("Intercept between %s and %ss = %.4f (%.4f : %.4f) std=%.4f\n"%(var,'slope',np.mean(post['beta1V0'])\
             ,np.percentile(post['beta1V0'],2.5),np.percentile(post['beta1V0'],97.5),np.std(post['beta1V0'])))
 
     f.close()
