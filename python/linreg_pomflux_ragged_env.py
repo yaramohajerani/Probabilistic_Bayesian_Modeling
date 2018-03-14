@@ -35,7 +35,7 @@ def fit_var(var,var2,env,min_stn,max_stn,niter,nchains,nwarm,PLOT,NP):
         env_config = 'slope'
         title_str = 'slope_%s-dependent'%var
     elif env == 2:
-        print('Intercept is dependent on %s. Slope is dependent on %s.'%(var1,var2))
+        print('Intercept is dependent on %s. Slope is dependent on %s.'%(var,var2))
         env_config = 'slope-intercept'
         title_str = 'intercept_%s-dependent_slope_%s-dependent'%(var,var2)
     print('Fit configurations: iterations=%i , chain=%i, warmup=%i'%(niter,nchains,nwarm))
@@ -59,8 +59,9 @@ def fit_var(var,var2,env,min_stn,max_stn,niter,nchains,nwarm,PLOT,NP):
 
     #-- remove nans and convert to dictionarties with python arrays (easier to work with)
     d = {}
-    for c in ['id','depth','flux_poc',var]:
-    	d[c] = d0[c][ind].values
+    for c in ['id','depth','flux_poc',var,var2]:
+        if c != None:
+        	d[c] = d0[c][ind].values
 
     #-- pick a subset of stations
     indstn = []
@@ -89,7 +90,7 @@ def fit_var(var,var2,env,min_stn,max_stn,niter,nchains,nwarm,PLOT,NP):
     var_avg = np.zeros(p)
     for i in range(p):
         var_avg[i] = np.mean(d[var][indstn][ni[i]:ni[i+1]])
-    if env==3:
+    if env==2:
         var2_avg = np.zeros(p)
         for i in range(p):
             var2_avg[i] = np.mean(d[var2][indstn][ni[i]:ni[i+1]])
@@ -236,7 +237,7 @@ def usage_info():
     print("--help or -h to display help information.")
     print("--var=X or -V:X to choose environmental variable for fit. Default npp.")
     print("--env=X or -E:X to choose if slope or intercept is based on environment.\n\t '0' for intercept and '1' for slope. Default = 0")
-    print("If env=3, both slope and intercept can depend on environmental variables.")
+    print("If env=2, both slope and intercept can depend on environmental variables.")
     print("'var' is used for the intercept and 'var2' is used for slope.")
     print("--var2=X or -V2:X to choose environmental variable for slope for env=3. Default None.")
     print("--min_stn=X or -i:X to set intial station number X. Default 1.")
