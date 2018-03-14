@@ -216,7 +216,7 @@ def fit_var(var,var2,env,min_stn,max_stn,niter,nchains,nwarm,PLOT,NP):
 
     #-- write results to file
     f = open(os.path.join(outdata,'%s_stn%i-%i_%iiter_%ichains_%iwarmup.txt'\
-        %(var,min_stn,max_stn,niter,nchains,nwarm)),'w')
+        %(title_str,min_stn,max_stn,niter,nchains,nwarm)),'w')
     for i in range(p):
         f.write("Stn %i: slope = %.4f (%.4f : %.4f) std=%.4f; intercept =  %.4f (%.4f : %.4f) std=%.4f\n"%(station_nums[i],\
             np.mean(post['beta1'][:,i]),np.percentile(post['beta1'][:,i],2.5),np.percentile(post['beta1'][:,i],97.5),\
@@ -233,9 +233,9 @@ def fit_var(var,var2,env,min_stn,max_stn,niter,nchains,nwarm,PLOT,NP):
             ,np.percentile(post['beta0V1'],2.5),np.percentile(post['beta0V1'],97.5),np.std(post['beta0V1'])))
         f.write("Intercept between %s and %ss = %.4f (%.4f : %.4f) std=%.4f\n"%(var,'intercept',np.mean(post['beta0V0'])\
             ,np.percentile(post['beta0V0'],2.5),np.percentile(post['beta0V0'],97.5),np.std(post['beta0V0'])))
-        f.write("Slope between %s and %ss = %.4f (%.4f : %.4f) std=%.4f\n"%(var,'slope',np.mean(post['beta1V1'])\
+        f.write("Slope between %s and %ss = %.4f (%.4f : %.4f) std=%.4f\n"%(var2,'slope',np.mean(post['beta1V1'])\
             ,np.percentile(post['beta1V1'],2.5),np.percentile(post['beta1V1'],97.5),np.std(post['beta1V1'])))
-        f.write("Intercept between %s and %ss = %.4f (%.4f : %.4f) std=%.4f\n"%(var,'slope',np.mean(post['beta1V0'])\
+        f.write("Intercept between %s and %ss = %.4f (%.4f : %.4f) std=%.4f\n"%(var2,'slope',np.mean(post['beta1V0'])\
             ,np.percentile(post['beta1V0'],2.5),np.percentile(post['beta1V0'],97.5),np.std(post['beta1V0'])))
 
     f.close()
@@ -273,7 +273,7 @@ def main():
     nchains = 4
     nwarm = 1000
     PLOT = 'N'
-    NP = np.copy(nchains)
+    NP = None
     #-- set parameters
     for opt, arg in optlist:
         if opt in ("-h","--help"):
@@ -299,6 +299,10 @@ def main():
             PLOT = arg
         elif opt in ("-n","--NP"):
             NP = np.int(arg)
+
+        #-- if number of processes was never set, set it equal to # of chains
+        if NP == None:
+            NP = np.copy(nchains)
 
     #-- pass parameters to fitting function
     fit_var(var,var2,env,min_stn,max_stn,niter,nchains,nwarm,PLOT,NP)
