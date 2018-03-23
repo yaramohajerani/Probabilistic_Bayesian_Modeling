@@ -159,11 +159,6 @@ def fit_var(parameters):
     #######################################################
     post = fit.extract(permuted=True)   #extract samples
 
-    print(post['logJ0'].shape)
-    print(post['b'].shape)
-    print(post['beta0'].shape)
-    print(post['beta1'].shape)
-
     if PLOT in ['y','Y']:
         f1, axarr = plt.subplots(p, 1, figsize=(8,10))
         #f1.suptitle('logJ0')

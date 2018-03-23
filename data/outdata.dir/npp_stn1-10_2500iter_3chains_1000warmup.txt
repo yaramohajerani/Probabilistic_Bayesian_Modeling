@@ -1,9 +1,0 @@
-Stn 1: slope = -0.6533 (-0.9326 : -0.3199) std=0.1533; intercept =  3.5892 (2.4649 : 4.5238) std=0.5192
-Stn 2: slope = -0.6040 (-0.9001 : -0.2519) std=0.1629; intercept =  3.9038 (2.6939 : 4.9558) std=0.5592
-Stn 3: slope = -0.7021 (-0.9968 : -0.4067) std=0.1441; intercept =  3.1091 (2.5205 : 3.6047) std=0.2865
-Stn 5: slope = -0.7551 (-0.8010 : -0.7121) std=0.0230; intercept =  3.4213 (3.3140 : 3.5319) std=0.0573
-Stn 6: slope = -0.5146 (-0.7590 : -0.2127) std=0.1370; intercept =  2.7718 (1.7689 : 3.5927) std=0.4523
-Stn 9: slope = -0.7034 (-1.2080 : -0.2595) std=0.2340; intercept =  4.8332 (3.0881 : 6.6612) std=0.8760
-
-Slope between npp and intercepts = 0.0037 (-0.0009 : 0.0087) std=0.0024
-Intercept between npp and intercepts = 1.4902 (-1.2888 : 3.8746) std=1.2546
