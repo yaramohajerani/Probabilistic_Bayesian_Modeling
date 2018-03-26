@@ -4,6 +4,9 @@ linreg_pomflux_ragged_env.py
 by Yara Mohajerani (03/2018)
 
 Update History
+    03/26/18  Add option to take log of input envionemntal variables
+                ** NOTE ** the code assumes for now the log is the only
+                option so if you add anything after the name it won't work
     03/22/18  Add option for a general number of env variables
                 using linreg_pomflux_env.stan
     03/2018 Written
@@ -18,6 +21,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 import getopt
+import copy
 
 #-- directory setup
 #- current directory
@@ -61,6 +65,28 @@ def fit_var(parameters):
     print('Fit configurations: iterations=%i , chain=%i, warmup=%i'%(niter,nchains,nwarm))
     print('Number of parallel processes = %i'%NP)
 
+    #-- extract names and operations from the given variable names (e.g) lognpp --> log of npp
+    intercept_varNames = copy.copy(intercept_vars)
+    intercept_ops = copy.copy(intercept_vars)
+    slope_varNames = copy.copy(slope_vars)
+    slope_ops = copy.copy(slope_vars)
+    for i,v in enumerate(intercept_vars):
+        if v.startswith('log'):
+            #-- for now we're assuming the only operation is log
+            intercept_varNames[i] = v[3:]
+            intercept_ops[i] = 'log'
+        else:
+            intercept_varNames[i] = v[:]
+            intercept_ops[i] = '1'
+    for i,v in enumerate(slope_vars):
+        if v.startswith('log'):
+            #-- for now we're assuming the only operation is log
+            slope_varNames[i] = v[3:]
+            slope_ops[i] = 'log'
+        else:
+            intercept_varNames[i] = v[:]
+            slope_ops[i] = '1'
+
     #######################################################
     ## Setup your data ####################################
     #######################################################
@@ -69,18 +95,30 @@ def fit_var(parameters):
     #-- remove rows where the depth or desired fluxes are missing
     #-- strat by just the poc indices and take intersections iteratively
     ind = np.squeeze(np.nonzero(~np.isnan(d0['flux_poc'])))
-    for v in intercept_vars:
+    for v in intercept_varNames:
         ind_temp = np.squeeze(np.nonzero(~np.isnan(d0[v])))
         ind = list(set(ind) & set(ind_temp))
-    for v in slope_vars:
+    for v in slope_varNames:
         ind_temp = np.squeeze(np.nonzero(~np.isnan(d0[v])))
         ind = list(set(ind) & set(ind_temp))
 
     #-- remove nans and convert to dictionarties with python arrays (easier to work with)
     d = {}
-    for c in ['id','depth','flux_poc']+list(intercept_vars)+list(slope_vars):
-        if c != None:
-        	d[c] = d0[c][ind].values
+    for v in ['id','depth','flux_poc']:
+    	d[v] = d0[v][ind].values
+    #-- also apply operations to the environmental variables
+    for i,v in enumerate(intercept_varNames):
+        if v != None:
+            if intercept_ops[i] == 'log':
+                d[v] = np.log(d0[v][ind].values)
+            else:
+                d[v] = d0[v][ind].values
+    for i,v in enumerate(slope_varNames):
+        if v != None:
+            if slope_ops[i] == 'log':
+                d[v] = np.log(d0[v][ind].values)
+            else:
+                d[v] = d0[v][ind].values
 
     #-- pick a subset of stations
     indstn = []
@@ -107,7 +145,7 @@ def fit_var(parameters):
 
     #-- average all the environmental values for each station
     intercept_avg = {}
-    for v in intercept_vars:
+    for v in intercept_varNames:
         intercept_avg[v] = np.zeros(p)
         for i in range(p):
             intercept_avg[v][i] = np.mean(d[v][indstn][ni[i]:ni[i+1]])
@@ -125,9 +163,9 @@ def fit_var(parameters):
     #-- make design matrices for slope and intercept
     M0 = np.ones((p,NI+1))
     M1 = np.ones((p,NS+1))
-    for i,v in enumerate(intercept_vars):
+    for i,v in enumerate(intercept_varNames):
         M0[:,i+1] = intercept_avg[v][:]
-    for i,v in enumerate(slope_vars):
+    for i,v in enumerate(slope_varNames):
         M1[:,i+1] = slope_avg[v][:]
 
     dat = dict(p=p, N=N, NI=NI, NS=NS, ni=ni, x=X, y=Y, M0=M0, M1=M1)
