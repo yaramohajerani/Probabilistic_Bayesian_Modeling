@@ -15,7 +15,7 @@ splom(X,
 		panel.hexbinplot(x, y, ...)
 		panel.loess(x, y, ..., col = 'red')
 	},
-	 varname.cex=0.7,type='p',cex=0.5)
+	 varname.cex=0.7,type='p',cex=0.5)	
  
 
  
