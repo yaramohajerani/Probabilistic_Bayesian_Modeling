@@ -1,9 +1,11 @@
 #!/usr/bin/env python
 u"""
 linreg_pomflux_ragged_env.py
-by Yara Mohajerani (03/2018)
+by Yara Mohajerani (04/2018)
 
 Update History
+    04/2018   Debug and make change directory stucture so data is outside of the
+                github repository folder.
     03/26/18  Add option to take log of input envionemntal variables
                 ** NOTE ** the code assumes for now the log is the only
                 option so if you add anything after the name it won't work
@@ -29,9 +31,9 @@ ddir = os.path.dirname(os.path.realpath(__file__))
 #- stan code directory
 stan_dir = os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..', 'stan'))
 #- data input
-indata = os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..', 'data/indata.dir'))
+indata = os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..','..','poc_data/indata.dir'))
 #- data output
-outdata = os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..', 'data/outdata.dir'))
+outdata = os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..','..','poc_data/outdata.dir'))
 
 
 def fit_var(parameters):
@@ -150,7 +152,7 @@ def fit_var(parameters):
         for i in range(p):
             intercept_avg[v][i] = np.mean(d[v][indstn][ni[i]:ni[i+1]])
     slope_avg = {}
-    for v in slope_vars:
+    for v in slope_varNames:
         slope_avg[v] = np.zeros(p)
         for i in range(p):
             slope_avg[v][i] = np.mean(d[v][indstn][ni[i]:ni[i+1]])
