@@ -1,5 +1,5 @@
-# Stan_Bayesian_Modeling
-Bayesian Modeling Scripts in Python using Stan
+# Probabilistic_Bayesian_Modeling
+Bayesian Modeling Scripts in Python using Stan and Edward
 
 Note compiled Stan files (`.pkl`) are ignored by git so if you
 clone this repository you have to compile the models in
