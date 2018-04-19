@@ -44,10 +44,10 @@ y_model = edm.Normal(loc= ed.dot(x_holder,beta1) + beta0, scale=tf.ones(N)*sigma
 #######################################################
 #-- Inference
 #######################################################
-qbeta1 = edm.Empirical(params=tf.get_variable("qbeta0/params", [T,D]))
-qbeta0 = edm.Empirical(params=tf.get_variable("qbeta1/params", [T,1]))
+qbeta1 = edm.Empirical(params=tf.get_variable("qbeta1/params", [T,D]))
+qbeta0 = edm.Empirical(params=tf.get_variable("qbeta0/params", [T,1]))
 qsigma = edm.Empirical(params=tf.get_variable("qsigma/params", [T,1]))
-#-- Stochastic gradient Hamiltonian Monte Carlo
+#-- Hamiltonian Monte Carlo
 inference = ed.HMC({beta0: qbeta0, beta1: qbeta1, sigma: qsigma},
     data={x_holder: x.reshape((N,D)), y_model: y})
 inference.run(step_size=1./N)
@@ -59,7 +59,7 @@ y_post = ed.copy(y_model, {beta1: qbeta1, beta0: qbeta0, sigma: qsigma})
 print('Mean Square Error: %.4f'%\
     ed.evaluate('mean_squared_error', data={x_holder: x.reshape((N,D)), y_model: y}))
 
-#-- convert posterior tensors to numpy arrays
+#-- sample the poster
 n_post = 500
 post = {}
 post['beta1'] = qbeta1.sample(n_post).eval()

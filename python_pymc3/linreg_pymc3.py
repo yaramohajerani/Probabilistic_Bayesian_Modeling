@@ -36,13 +36,12 @@ with pm.Model() as model:
 	beta1 = pm.Normal('beta1', 0, sd=20)
 
 	# Define likelihood
-	likelihood = pm.Normal('y', mu=beta1*x + beta0,
-		sd=sigma, observed=y)
+	pm.Normal('y', mu=beta1*x + beta0,sd=sigma, observed=y)
 
 	# Inference
 	post = pm.sample(3000, cores=2) # draw 3000 posterior samples
 	#-- also generate prediction values (200 datasets containing N points)
-	predictions = pm.sample_ppc(post, model=model) #samples=200, model=model, size=N)
+	predictions = pm.sample_ppc(post, model=model)
 	#-- extract
 	y_pred = predictions['y']
 
