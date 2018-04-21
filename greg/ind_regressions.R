@@ -5,6 +5,10 @@ rm(list=ls())
 #d <- read.csv('d:/dropbox/working/stan_bayesian_modeling/data/indata.dir/pom_flux/GO_flux_env_o2_t.csv')
 d <- read.csv('d:/dropbox/teaching/stan_examples/data/GO_flux_env_o2_t.csv')
 d <- d[complete.cases(d$flux_poc),]
+
+#-TRY SUBSETTING <30 days-#
+d <- d[d$time < 30,]
+
 d$id2 <- paste(d$id,d$month,sep='')
 d$id3 <- paste(d$id,d$month,d$year,sep='')
 
@@ -107,7 +111,7 @@ pdf('d:/dropbox/working/stan_bayesian_modeling/greg/plots/ind_regressions_id3.pd
 par(mfrow=c(5,5),mar=c(1,1,1,1),cex.axis=0.7,oma=c(3,3,3,3))
 	for(i in 1:length(ID3s)){
 		dtmp <- d[d$id3==ID3s[i],]
-		if(nrow(dtmp)>2){if(diff(range(dtmp$depth))>100){
+		if(nrow(dtmp)> 2){if(diff(range(dtmp$depth))>100){
 			plot(log(dtmp$depth/100), log(dtmp$flux_poc),ylim=c(-3,7),xlim=c(-1,4))
 			fit <- lm(log(dtmp$flux_poc) ~ log(dtmp$depth/100))
 			abline(fit)
