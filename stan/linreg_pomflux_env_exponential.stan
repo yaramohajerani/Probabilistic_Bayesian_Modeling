@@ -18,7 +18,7 @@ parameters{
 	real<lower=1e-15,upper=10> bInf_sd; //bounded variable for intercept bInf
 	real<lower=1e-15,upper=10> b1_sd; //standard deviation of b1
 	real<lower=1e-15,upper=10> b2_sd; //standard deviation of b2
-	vector[Ninv+1] betaInf; //coefficients for bInf environmental dependence
+	vector[Ninf+1] betaInf; //coefficients for bInf environmental dependence
 	vector[N1+1] beta1; //coefficients for b1 environmental dependence
 	vector[N2+1] beta2; //coefficients for b2 environmental dependence
 	real<lower=1e-15> sigma; //measurement noise sd
@@ -28,6 +28,6 @@ model{
 		bInf[i] ~ normal(dot_product(MInf[i,],betaInf),bInf_sd); //location-specific bInf
 		b1[i] ~ normal(dot_product(M1[i,],beta1),b1_sd); //location-specific b1
 		b2[i] ~ normal(dot_product(M2[i,],beta2),b2_sd); //location-specific b2
-		y[(ni[i]+1):ni[i+1]] ~ normal(bInf[i] + (b1[i]-bInf[i])*matrix_exp(x[(ni[i]+1):ni[i+1]]/b2[i]), sigma); //likelihood of data, station by station
+		y[(ni[i]+1):ni[i+1]] ~ normal(bInf[i] + (b1[i]-bInf[i])*exp(x[(ni[i]+1):ni[i+1]]/b2[i]), sigma); //likelihood of data, station by station
 	}
 }

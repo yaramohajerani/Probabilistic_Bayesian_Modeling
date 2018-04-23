@@ -1,0 +1,9 @@
+bInf_variables  npp_mon	# environmental dependence of bInf
+b1_variables  PO4_mon	# envionemntal dependence of b1
+b2_variables  sst_mon   # envionemntal dependence of b1
+min_stn      32000   # set intial station number X
+max_stn      33000   # set final station number X
+iterations   2000  # set number of iterations
+chains       4   # set number of chains
+warmup       1000   # set number of warmup cycles
+NP           0   # Number of parallel jobs for chains

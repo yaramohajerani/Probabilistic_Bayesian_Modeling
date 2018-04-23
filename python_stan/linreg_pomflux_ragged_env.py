@@ -86,7 +86,7 @@ def fit_var(parameters):
             slope_varNames[i] = v[3:]
             slope_ops[i] = 'log'
         else:
-            intercept_varNames[i] = v[:]
+            slope_varNames[i] = v[:]
             slope_ops[i] = '1'
 
     #######################################################
@@ -134,6 +134,7 @@ def fit_var(parameters):
     if max_stn in ['none','NONE','None']:
         indstn = np.arange(len(d['id_mon_yr']))
     else:
+        indstn = []
         for i in range(min_stn,np.int(max_stn)+1):
             if np.count_nonzero(d['id_mon_yr']==i) > 1:
                 indstn += list(np.squeeze(np.nonzero(d['id_mon_yr']==i)))

@@ -40,14 +40,12 @@ def fit_var(parameters):
     niter = np.int(parameters['iterations'])
     nchains = np.int(parameters['chains'])
     nwarm = np.int(parameters['warmup'])
-    PLOT = parameters['PLOT'].upper()
     NP = np.int(parameters['NP'])
     #-- if number of processes was never set, set it equal to # of chains
     if NP == 0:
         NP = np.copy(nchains)
 
     print('looking at stations %s to %s.'%(min_stn,max_stn))
-    print('Plotting: %s'%PLOT)
     bInf_str = ''
     print('bInf Dependence:')
     for v in bInf_vars:
@@ -58,7 +56,7 @@ def fit_var(parameters):
     for v in b1_vars:
         print(v)
         b1_str += '%s,'%v
-    b2str = ''
+    b2_str = ''
     print('b2 Dependence:')
     for v in b2_vars:
         print(v)
@@ -69,26 +67,36 @@ def fit_var(parameters):
     print('Number of parallel processes = %i'%NP)
 
     #-- extract names and operations from the given variable names (e.g) lognpp --> log of npp
-    intercept_varNames = copy.copy(intercept_vars)
-    intercept_ops = copy.copy(intercept_vars)
-    slope_varNames = copy.copy(slope_vars)
-    slope_ops = copy.copy(slope_vars)
-    for i,v in enumerate(intercept_vars):
+    bInf_varNames = copy.copy(bInf_vars)
+    bInf_ops = copy.copy(bInf_vars)
+    b1_varNames = copy.copy(b1_vars)
+    b1_ops = copy.copy(b1_vars)
+    b2_varNames = copy.copy(b2_vars)
+    b2_ops = copy.copy(b2_vars)
+    for i,v in enumerate(bInf_vars):
         if v.startswith('log'):
             #-- for now we're assuming the only operation is log
-            intercept_varNames[i] = v[3:]
-            intercept_ops[i] = 'log'
+            bInf_varNames[i] = v[3:]
+            bInf_ops[i] = 'log'
         else:
-            intercept_varNames[i] = v[:]
-            intercept_ops[i] = '1'
-    for i,v in enumerate(slope_vars):
+            bInf_varNames[i] = v[:]
+            bInf_ops[i] = '1'
+    for i,v in enumerate(b1_vars):
         if v.startswith('log'):
             #-- for now we're assuming the only operation is log
-            slope_varNames[i] = v[3:]
-            slope_ops[i] = 'log'
+            b1_varNames[i] = v[3:]
+            b1_ops[i] = 'log'
         else:
-            intercept_varNames[i] = v[:]
-            slope_ops[i] = '1'
+            b1_varNames[i] = v[:]
+            b1_ops[i] = '1'
+    for i,v in enumerate(b2_vars):
+        if v.startswith('log'):
+            #-- for now we're assuming the only operation is log
+            b2_varNames[i] = v[3:]
+            b2_ops[i] = 'log'
+        else:
+            b2_varNames[i] = v[:]
+            b2_ops[i] = '1'
 
     #######################################################
     ## Setup your data ####################################
@@ -98,10 +106,13 @@ def fit_var(parameters):
     #-- remove rows where the depth or desired fluxes are missing
     #-- strat by just the poc indices and take intersections iteratively
     ind = np.squeeze(np.nonzero(~np.isnan(d0['flux_poc'])))
-    for v in intercept_varNames:
+    for v in bInf_varNames:
         ind_temp = np.squeeze(np.nonzero(~np.isnan(d0[v])))
         ind = list(set(ind) & set(ind_temp))
-    for v in slope_varNames:
+    for v in b1_varNames:
+        ind_temp = np.squeeze(np.nonzero(~np.isnan(d0[v])))
+        ind = list(set(ind) & set(ind_temp))
+    for v in b2_varNames:
         ind_temp = np.squeeze(np.nonzero(~np.isnan(d0[v])))
         ind = list(set(ind) & set(ind_temp))
 
@@ -110,15 +121,21 @@ def fit_var(parameters):
     for v in ['id_mon_yr','depth','flux_poc']:
     	d[v] = d0[v][ind].values
     #-- also apply operations to the environmental variables
-    for i,v in enumerate(intercept_varNames):
+    for i,v in enumerate(bInf_varNames):
         if v != None:
-            if intercept_ops[i] == 'log':
+            if bInf_ops[i] == 'log':
                 d[v] = np.log(d0[v][ind].values)
             else:
                 d[v] = d0[v][ind].values
-    for i,v in enumerate(slope_varNames):
+    for i,v in enumerate(b1_varNames):
         if v != None:
-            if slope_ops[i] == 'log':
+            if b1_ops[i] == 'log':
+                d[v] = np.log(d0[v][ind].values)
+            else:
+                d[v] = d0[v][ind].values
+    for i,v in enumerate(b2_varNames):
+        if v != None:
+            if b2_ops[i] == 'log':
                 d[v] = np.log(d0[v][ind].values)
             else:
                 d[v] = d0[v][ind].values
@@ -135,6 +152,7 @@ def fit_var(parameters):
     if max_stn in ['none','NONE','None']:
         indstn = np.arange(len(d['id_mon_yr']))
     else:
+        indstn = []
         for i in range(min_stn,np.int(max_stn)+1):
             if np.count_nonzero(d['id_mon_yr']==i) > 1:
                 indstn += list(np.squeeze(np.nonzero(d['id_mon_yr']==i)))
@@ -157,38 +175,48 @@ def fit_var(parameters):
 
     #-- average all the environmental values for each station (the should all
     #-- be the same when using the id_mon_yr ID)
-    intercept_avg = {}
-    for v in intercept_varNames:
-        intercept_avg[v] = np.zeros(p)
+    bInf_avg = {}
+    for v in bInf_varNames:
+        bInf_avg[v] = np.zeros(p)
         for i in range(p):
-            intercept_avg[v][i] = np.mean(d[v][indstn][ni[i]:ni[i+1]])
-    slope_avg = {}
-    for v in slope_varNames:
-        slope_avg[v] = np.zeros(p)
+            bInf_avg[v][i] = np.mean(d[v][indstn][ni[i]:ni[i+1]])
+    b1_avg = {}
+    for v in b1_varNames:
+        b1_avg[v] = np.zeros(p)
         for i in range(p):
-            slope_avg[v][i] = np.mean(d[v][indstn][ni[i]:ni[i+1]])
+            b1_avg[v][i] = np.mean(d[v][indstn][ni[i]:ni[i+1]])
+    b2_avg = {}
+    for v in b2_varNames:
+        b2_avg[v] = np.zeros(p)
+        for i in range(p):
+            b2_avg[v][i] = np.mean(d[v][indstn][ni[i]:ni[i+1]])
 
     #-- package data for Stan
-    X = np.log(d['depth'][indstn]/100.)
-    Y = np.log(d['flux_poc'][indstn])
-    NI = len(intercept_vars)
-    NS = len(slope_vars)
+    X = d['depth'][indstn]-100.
+    Y = d['flux_poc'][indstn]
+    Ninf = len(bInf_vars)
+    N1 = len(b1_vars)
+    N2 = len(b2_vars)
     #-- make design matrices for slope and intercept
-    M0 = np.ones((p,NI+1))
-    M1 = np.ones((p,NS+1))
-    for i,v in enumerate(intercept_varNames):
-        M0[:,i+1] = intercept_avg[v][:]
-    for i,v in enumerate(slope_varNames):
-        M1[:,i+1] = slope_avg[v][:]
+    MInf = np.ones((p,Ninf+1))
+    M1 = np.ones((p,N1+1))
+    M2 = np.ones((p,N2+1))
+    for i,v in enumerate(bInf_varNames):
+        MInf[:,i+1] = bInf_avg[v][:]
+    for i,v in enumerate(b1_varNames):
+        M1[:,i+1] = b1_avg[v][:]
+    for i,v in enumerate(b2_varNames):
+        M2[:,i+1] = b2_avg[v][:]
 
-    dat = dict(p=p, N=N, NI=NI, NS=NS, ni=ni, x=X, y=Y, M0=M0, M1=M1)
+    dat = dict(p=p, N=N, Ninf=Ninf, N1=N1, N2=N2, ni=ni, x=X, y=Y,\
+        MInf=MInf, M1=M1, M2=M2)
 
 
     #######################################################
     ## Fit Stan model #####################################
     #######################################################
     #-- First check if the compiled file exists. If not, compile model.
-    model_name = 'linreg_pomflux_env'
+    model_name = 'linreg_pomflux_env_exponential'
     compiled_file = os.path.join(ddir,'compiled_models.dir','%s.pkl'%model_name)
     if os.path.isfile(compiled_file):
     	mod = pickle.load(open(compiled_file, 'rb'))
@@ -210,63 +238,30 @@ def fit_var(parameters):
     #######################################################
     post = fit.extract(permuted=True)   #extract samples
 
-    if PLOT in ['y','Y']:
-        f1, axarr = plt.subplots(p, 1, figsize=(8,10))
-        #f1.suptitle('logJ0')
-        for i in range(p):
-            yhist, xhist, _ = axarr[i].hist(post['logJ0'][:,i],bins=np.int(np.sqrt(len(post['logJ0'][:,i])))\
-                ,color='grey')
-            #-- make y axis for plotting vertical lines
-            yline = np.arange(np.max(yhist))
-            axarr[i].plot(np.ones(len(yline))*np.mean(post['logJ0'][:,i]),yline,'k-',linewidth=2)
-            axarr[i].plot(np.ones(len(yline))*np.percentile(post['logJ0'][:,i],2.5),yline,'k--')
-            axarr[i].plot(np.ones(len(yline))*np.percentile(post['logJ0'][:,i],97.5),yline,'k--')
-            axarr[i].set_title('logJ0, stn #%i'%station_nums[i])
-        plt.tight_layout()
-        plt.savefig(os.path.join(outdata,'%s_logJ0_histogram_stn%s-%s_%iiter_%ichains_%iwarmup.pdf'\
-            %(title_str,min_stn,max_stn,niter,nchains,nwarm)),format='pdf')
-        plt.close(f1)
 
-        f2, axarr = plt.subplots(p, 1, figsize=(8,10))
-        #f2.suptitle('b')
-        for i in range(p):
-            yhist, xhist, _ = axarr[i].hist(post['b'][:,i],bins=np.int(np.sqrt(len(post['b'][:,i]))),\
-                color='grey')
-            #-- make y axis for plotting vertical lines
-            yline = np.arange(np.max(yhist))
-            axarr[i].plot(np.ones(len(yline))*np.mean(post['b'][:,i]),yline,'k-',linewidth=2)
-            axarr[i].plot(np.ones(len(yline))*np.percentile(post['b'][:,i],2.5),yline,'k--')
-            axarr[i].plot(np.ones(len(yline))*np.percentile(post['b'][:,i],97.5),yline,'k--')
-            axarr[i].set_title('b, stn #%i'%station_nums[i])
-        plt.tight_layout()
-        plt.savefig(os.path.join(outdata,'%s_b_histogram_stn%s-%s_%iiter_%ichains_%iwarmup.pdf'\
-            %(title_str,min_stn,max_stn,niter,nchains,nwarm)),format='pdf')
-        plt.close(f2)
-
-    #-- the environmental dependence histograms are always plotted (since the # of graphs doesn't
-    #-- increase with the number of stations.)
-    f3, axarr = plt.subplots(NI+1, 1, figsize=(8,6))
-    f3.suptitle("Dependence of Intercept on %s"%intercept_str)
-    for i in range(NI+1):
-        yhist, xhist, _ = axarr[i].hist(post['beta0'][:,i],bins=np.int(np.sqrt(len(post['beta0'][:,i]))),\
+    #-- plot the environmental dependence histograms
+    f1, axarr = plt.subplots(Ninf+1, 1, figsize=(8,6))
+    f1.suptitle("Dependence of bInf on %s"%bInf_str)
+    for i in range(Ninf+1):
+        yhist, xhist, _ = axarr[i].hist(post['betaInf'][:,i],bins=np.int(np.sqrt(len(post['betaInf'][:,i]))),\
             color='grey')
         #-- make y axis for plotting vertical lines
         yline = np.arange(np.max(yhist))
-        axarr[i].plot(np.ones(len(yline))*np.mean(post['beta0'][:,i]),yline,'k-',linewidth=2)
-        axarr[i].plot(np.ones(len(yline))*np.percentile(post['beta0'][:,i],2.5),yline,'k--')
-        axarr[i].plot(np.ones(len(yline))*np.percentile(post['beta0'][:,i],97.5),yline,'k--')
+        axarr[i].plot(np.ones(len(yline))*np.mean(post['betaInf'][:,i]),yline,'k-',linewidth=2)
+        axarr[i].plot(np.ones(len(yline))*np.percentile(post['betaInf'][:,i],2.5),yline,'k--')
+        axarr[i].plot(np.ones(len(yline))*np.percentile(post['betaInf'][:,i],97.5),yline,'k--')
         if i ==0:
             axarr[i].set_title("Constant")
         else:
-            axarr[i].set_title(intercept_vars[i-1])
+            axarr[i].set_title(bInf_vars[i-1])
     #plt.tight_layout()
-    plt.savefig(os.path.join(outdata,'%s_intercept_histogram_stn%s-%s_%iiter_%ichains_%iwarmup.pdf'\
+    plt.savefig(os.path.join(outdata,'%s_bInf_histogram_stn%s-%s_%iiter_%ichains_%iwarmup.pdf'\
         %(title_str,min_stn,max_stn,niter,nchains,nwarm)),format='pdf')
-    plt.close(f3)
+    plt.close(f1)
 
-    f4, axarr = plt.subplots(NS+1, 1, figsize=(8,6))
-    f4.suptitle("Dependence of Slope on %s"%slope_str)
-    for i in range(NI+1):
+    f2, axarr = plt.subplots(N1+1, 1, figsize=(8,6))
+    f2.suptitle("Dependence of b1 on %s"%b1_str)
+    for i in range(N1+1):
         yhist, xhist, _ = axarr[i].hist(post['beta1'][:,i],bins=np.int(np.sqrt(len(post['beta1'][:,i]))),\
             color='grey')
         #-- make y axis for plotting vertical lines
@@ -277,39 +272,69 @@ def fit_var(parameters):
         if i ==0:
             axarr[i].set_title("Constant")
         else:
-            axarr[i].set_title(slope_vars[i-1])
+            axarr[i].set_title(b1_vars[i-1])
     #plt.tight_layout()
-    plt.savefig(os.path.join(outdata,'%s_slope_histogram_stn%s-%s_%iiter_%ichains_%iwarmup.pdf'\
+    plt.savefig(os.path.join(outdata,'%s_b1_histogram_stn%s-%s_%iiter_%ichains_%iwarmup.pdf'\
         %(title_str,min_stn,max_stn,niter,nchains,nwarm)),format='pdf')
-    plt.close(f4)
+    plt.close(f2)
+
+    f3, axarr = plt.subplots(N2+1, 1, figsize=(8,6))
+    f3.suptitle("Dependence of b2 on %s"%b2_str)
+    for i in range(N1+1):
+        yhist, xhist, _ = axarr[i].hist(post['beta2'][:,i],bins=np.int(np.sqrt(len(post['beta2'][:,i]))),\
+            color='grey')
+        #-- make y axis for plotting vertical lines
+        yline = np.arange(np.max(yhist))
+        axarr[i].plot(np.ones(len(yline))*np.mean(post['beta2'][:,i]),yline,'k-',linewidth=2)
+        axarr[i].plot(np.ones(len(yline))*np.percentile(post['beta2'][:,i],2.5),yline,'k--')
+        axarr[i].plot(np.ones(len(yline))*np.percentile(post['beta2'][:,i],97.5),yline,'k--')
+        if i ==0:
+            axarr[i].set_title("Constant")
+        else:
+            axarr[i].set_title(b2_vars[i-1])
+    #plt.tight_layout()
+    plt.savefig(os.path.join(outdata,'%s_b2_histogram_stn%s-%s_%iiter_%ichains_%iwarmup.pdf'\
+        %(title_str,min_stn,max_stn,niter,nchains,nwarm)),format='pdf')
+    plt.close(f3)
 
 
     #-- write results to file
     f = open(os.path.join(outdata,'%s_stn%s-%s_%iiter_%ichains_%iwarmup.txt'\
         %(title_str,min_stn,max_stn,niter,nchains,nwarm)),'w')
     for i in range(p):
-        f.write("Stn %i: slope = %.4f (%.4f : %.4f) std=%.4f; intercept =  %.4f (%.4f : %.4f) std=%.4f\n"%(station_nums[i],\
-            np.mean(post['b'][:,i]),np.percentile(post['b'][:,i],2.5),np.percentile(post['b'][:,i],97.5),\
-            np.std(post['b'][:,i]),np.mean(post['logJ0'][:,i]),np.percentile(post['logJ0'][:,i],2.5),\
-            np.percentile(post['logJ0'][:,i],97.5),np.std(post['logJ0'][:,i])))
+        f.write("Stn %i: bInf = %.4f (%.4f : %.4f) std=%.4f; b1 =  %.4f (%.4f : %.4f) std=%.4f; \
+            b2 =  %.4f (%.4f : %.4f) std=%.4f\n"%(station_nums[i],np.mean(post['bInf'][:,i]),\
+            np.percentile(post['bInf'][:,i],2.5),np.percentile(post['bInf'][:,i],97.5),\
+            np.std(post['bInf'][:,i]),np.mean(post['b1'][:,i]),np.percentile(post['b1'][:,i],2.5),\
+            np.percentile(post['b1'][:,i],97.5),np.std(post['b1'][:,i]),np.mean(post['b2'][:,i]),\
+            np.percentile(post['b2'][:,i],2.5),np.percentile(post['b2'][:,i],97.5),np.std(post['b2'][:,i])))
 
 
-    f.write("\n\nIntercept Dependence:\n")
-    for i in range(NI+1):
+    f.write("\n\nbInf Dependence:\n")
+    for i in range(Ninf+1):
         if i==0:
             vname = 'Constant'
         else:
-            vname = intercept_vars[i-1]
-        f.write("%s: %.4f (%.4f : %.4f) std=%.4f\n"%(vname,np.mean(post['beta0'][:,i]),np.percentile(post['beta0'][:,i],2.5)\
-            ,np.percentile(post['beta0'][:,i],97.5),np.std(post['beta0'][:,i])))
-    f.write("\n\nSlope Dependence:\n")
-    for i in range(NS+1):
+            vname = bInf_vars[i-1]
+        f.write("%s: %.4f (%.4f : %.4f) std=%.4f\n"%(vname,np.mean(post['betaInf'][:,i]),\
+            np.percentile(post['betaInf'][:,i],2.5),np.percentile(post['betaInf'][:,i],97.5)\
+            ,np.std(post['betaInf'][:,i])))
+    f.write("\n\nb1 Dependence:\n")
+    for i in range(N1+1):
         if i==0:
             vname = 'Constant'
         else:
-            vname = slope_vars[i-1]
+            vname = b1_vars[i-1]
         f.write("%s: %.4f (%.4f : %.4f) std=%.4f\n"%(vname,np.mean(post['beta1'][:,i]),np.percentile(post['beta1'][:,i],2.5)\
             ,np.percentile(post['beta1'][:,i],97.5),np.std(post['beta1'][:,i])))
+    f.write("\n\nb2 Dependence:\n")
+    for i in range(N2+1):
+        if i==0:
+            vname = 'Constant'
+        else:
+            vname = b2_vars[i-1]
+        f.write("%s: %.4f (%.4f : %.4f) std=%.4f\n"%(vname,np.mean(post['beta2'][:,i]),np.percentile(post['beta2'][:,i],2.5)\
+            ,np.percentile(post['beta2'][:,i],97.5),np.std(post['beta2'][:,i])))
 
     f.close()
 
@@ -317,14 +342,14 @@ def fit_var(parameters):
 def usage_info():
     print("--help or -h to display help information.")
     print("Need to input ascii (txt) parameter files with the run confugrations:")
-    print("slope_variables  v1,v2,...   # envionemntal dependence if slope")
-    print("intercept_variables  v1,v2,...   #envionemntal dependence if intercept")
+    print("bInf_variables  v1,v2,...   # envionemntal dependence of bInf")
+    print("b1_variables  v1,v2,...   #envionemntal dependence of b1")
+    print("b2_variables  v1,v2,...   #envionemntal dependence of b2")
     print("min_stn      X   # set intial station number X")
     print("max_stn      X   # set final station number X")
     print("iterations   X   # set number of iterations")
     print("chains       X   # set number of chains")
     print("warmup       X   # set number of warmup cycles")
-    print("PLOT         Y/N # Y make plots of slopes and intercepts. N no plots except for environmental histograms")
     print("NP           X   # Number of parallel jobs for chains. 0: same as # of chains.")
 
 #-- main function to get parameters and pass them along to fitting function
