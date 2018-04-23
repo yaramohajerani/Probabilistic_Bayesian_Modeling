@@ -1,17 +1,12 @@
 #!/usr/bin/env python
 u"""
-linreg_pomflux_ragged_env.py
+linreg_pomflux_ragged_env_exponential.py
 by Yara Mohajerani (04/2018)
 
+NOT COMPLETED YET; DON'T USE UNTIL PUSHED TO MASTER.
+
 Update History
-    04/2018   Debug and make change directory stucture so data is outside of the
-                github repository folder.
-    03/26/18  Add option to take log of input envionemntal variables
-                ** NOTE ** the code assumes for now the log is the only
-                option so if you add anything after the name it won't work
-    03/22/18  Add option for a general number of env variables
-                using linreg_pomflux_env.stan
-    03/2018 Written
+    04/2018   Forked from linreg_pomflux_ragged_env.py
 """
 from __future__ import print_function
 
@@ -37,8 +32,9 @@ outdata = os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..','..','p
 
 
 def fit_var(parameters):
-    slope_vars = parameters['slope_variables'].split(',')
-    intercept_vars = parameters['intercept_variables'].split(',')
+    bInf_vars = parameters['bInf_variables'].split(',')
+    b1_vars = parameters['b1_variables'].split(',')
+    b2_vars = parameters['b2_variables'].split(',')
     min_stn = np.int(parameters['min_stn'])
     max_stn = parameters['max_stn']
     niter = np.int(parameters['iterations'])
@@ -52,17 +48,22 @@ def fit_var(parameters):
 
     print('looking at stations %s to %s.'%(min_stn,max_stn))
     print('Plotting: %s'%PLOT)
-    intercept_str = ''
-    print('Intercept Dependence:')
-    for v in intercept_vars:
+    bInf_str = ''
+    print('bInf Dependence:')
+    for v in bInf_vars:
         print(v)
-        intercept_str += '%s,'%v
-    slope_str = ''
-    print('Slope Dependence:')
-    for v in slope_vars:
+        bInf_str += '%s,'%v
+    b1_str = ''
+    print('b1 Dependence:')
+    for v in b1_vars:
         print(v)
-        slope_str += '%s,'%v
-    title_str = 'intercept_%s-dependent_slope_%s-dependent'%(intercept_str[:-1],slope_str[:-1])
+        b1_str += '%s,'%v
+    b2str = ''
+    print('b2 Dependence:')
+    for v in b2_vars:
+        print(v)
+        b2_str += '%s,'%v
+    title_str = 'bInf_%s-dependent_b1_%s-dependent_b2_%s-dependent'%(bInf_str[:-1],b1_str[:-1],b2_str[:-1])
 
     print('Fit configurations: iterations=%i , chain=%i, warmup=%i'%(niter,nchains,nwarm))
     print('Number of parallel processes = %i'%NP)
