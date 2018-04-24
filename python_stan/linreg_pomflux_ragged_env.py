@@ -136,6 +136,8 @@ def fit_var(parameters):
     else:
         indstn = []
         for i in range(min_stn,np.int(max_stn)+1):
+            #-- when doing a dubset of stations get stations with more than
+            #-- one poitns since we just want a small subset anyways
             if np.count_nonzero(d['id_mon_yr']==i) > 1:
                 indstn += list(np.squeeze(np.nonzero(d['id_mon_yr']==i)))
 
@@ -148,7 +150,6 @@ def fit_var(parameters):
     n = np.zeros(p)
     for i in range(p):
         #-- only count stations that have more than 1 value
-        #if np.count_nonzero(d['id_mon_yr'][indstn]==station_nums[i]) > 1:
         n[i] = np.count_nonzero(d['id_mon_yr'][indstn]==station_nums[i])
     N = np.int(np.sum(n)) #-- total number of points
 
@@ -212,7 +213,7 @@ def fit_var(parameters):
     post = fit.extract(permuted=True)   #extract samples
 
     if PLOT in ['y','Y']:
-        f1, axarr = plt.subplots(p, 1, figsize=(8,10))
+        f1, axarr = plt.subplots(p, 1, figsize=(10,10))
         #f1.suptitle('logJ0')
         for i in range(p):
             yhist, xhist, _ = axarr[i].hist(post['logJ0'][:,i],bins=np.int(np.sqrt(len(post['logJ0'][:,i])))\
@@ -224,11 +225,12 @@ def fit_var(parameters):
             axarr[i].plot(np.ones(len(yline))*np.percentile(post['logJ0'][:,i],97.5),yline,'k--')
             axarr[i].set_title('logJ0, stn #%i'%station_nums[i])
         plt.tight_layout()
+        plt.subplots_adjust(top=0.90)
         plt.savefig(os.path.join(outdata,'%s_logJ0_histogram_stn%s-%s_%iiter_%ichains_%iwarmup.pdf'\
             %(title_str,min_stn,max_stn,niter,nchains,nwarm)),format='pdf')
         plt.close(f1)
 
-        f2, axarr = plt.subplots(p, 1, figsize=(8,10))
+        f2, axarr = plt.subplots(p, 1, figsize=(10,10))
         #f2.suptitle('b')
         for i in range(p):
             yhist, xhist, _ = axarr[i].hist(post['b'][:,i],bins=np.int(np.sqrt(len(post['b'][:,i]))),\
@@ -240,13 +242,14 @@ def fit_var(parameters):
             axarr[i].plot(np.ones(len(yline))*np.percentile(post['b'][:,i],97.5),yline,'k--')
             axarr[i].set_title('b, stn #%i'%station_nums[i])
         plt.tight_layout()
+        plt.subplots_adjust(top=0.90)
         plt.savefig(os.path.join(outdata,'%s_b_histogram_stn%s-%s_%iiter_%ichains_%iwarmup.pdf'\
             %(title_str,min_stn,max_stn,niter,nchains,nwarm)),format='pdf')
         plt.close(f2)
 
     #-- the environmental dependence histograms are always plotted (since the # of graphs doesn't
     #-- increase with the number of stations.)
-    f3, axarr = plt.subplots(NI+1, 1, figsize=(8,6))
+    f3, axarr = plt.subplots(NI+1, 1, figsize=(10,10))
     f3.suptitle("Dependence of Intercept on %s"%intercept_str)
     for i in range(NI+1):
         yhist, xhist, _ = axarr[i].hist(post['beta0'][:,i],bins=np.int(np.sqrt(len(post['beta0'][:,i]))),\
@@ -261,11 +264,12 @@ def fit_var(parameters):
         else:
             axarr[i].set_title(intercept_vars[i-1])
     plt.tight_layout()
+    plt.subplots_adjust(top=0.90)
     plt.savefig(os.path.join(outdata,'%s_intercept_histogram_stn%s-%s_%iiter_%ichains_%iwarmup.pdf'\
         %(title_str,min_stn,max_stn,niter,nchains,nwarm)),format='pdf')
     plt.close(f3)
 
-    f4, axarr = plt.subplots(NS+1, 1, figsize=(8,6))
+    f4, axarr = plt.subplots(NS+1, 1, figsize=(10,10))
     f4.suptitle("Dependence of Slope on %s"%slope_str)
     for i in range(NS+1):
         yhist, xhist, _ = axarr[i].hist(post['beta1'][:,i],bins=np.int(np.sqrt(len(post['beta1'][:,i]))),\
@@ -280,6 +284,7 @@ def fit_var(parameters):
         else:
             axarr[i].set_title(slope_vars[i-1])
     plt.tight_layout()
+    plt.subplots_adjust(top=0.90)
     plt.savefig(os.path.join(outdata,'%s_slope_histogram_stn%s-%s_%iiter_%ichains_%iwarmup.pdf'\
         %(title_str,min_stn,max_stn,niter,nchains,nwarm)),format='pdf')
     plt.close(f4)

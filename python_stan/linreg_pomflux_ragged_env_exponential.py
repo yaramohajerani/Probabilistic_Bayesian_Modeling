@@ -154,9 +154,10 @@ def fit_var(parameters):
     else:
         indstn = []
         for i in range(min_stn,np.int(max_stn)+1):
+            #-- when doing a dubset of stations get stations with more than
+            #-- one poitns since we just want a small subset anyways
             if np.count_nonzero(d['id_mon_yr']==i) > 1:
                 indstn += list(np.squeeze(np.nonzero(d['id_mon_yr']==i)))
-
 
     #-- Set up data for stan. we want each station to be separate
     #-- number of unique stations
@@ -165,8 +166,6 @@ def fit_var(parameters):
     #-- number of data points per station
     n = np.zeros(p)
     for i in range(p):
-        #-- only count stations that have more than 1 value
-        #if np.count_nonzero(d['id_mon_yr'][indstn]==station_nums[i]) > 1:
         n[i] = np.count_nonzero(d['id_mon_yr'][indstn]==station_nums[i])
     N = np.int(np.sum(n)) #-- total number of points
     #vector index for dataset stacked as single column
@@ -193,7 +192,7 @@ def fit_var(parameters):
 
     #-- package data for Stan
     X = d['depth'][indstn]-100.
-    Y = d['flux_poc'][indstn]
+    Y = np.log(d['flux_poc'][indstn])
     Ninf = len(bInf_vars)
     N1 = len(b1_vars)
     N2 = len(b2_vars)
@@ -240,7 +239,7 @@ def fit_var(parameters):
 
 
     #-- plot the environmental dependence histograms
-    f1, axarr = plt.subplots(Ninf+1, 1, figsize=(8,6))
+    f1, axarr = plt.subplots(Ninf+1, 1, figsize=(10,10))
     f1.suptitle("Dependence of bInf on %s"%bInf_str)
     for i in range(Ninf+1):
         yhist, xhist, _ = axarr[i].hist(post['betaInf'][:,i],bins=np.int(np.sqrt(len(post['betaInf'][:,i]))),\
@@ -254,12 +253,13 @@ def fit_var(parameters):
             axarr[i].set_title("Constant")
         else:
             axarr[i].set_title(bInf_vars[i-1])
-    #plt.tight_layout()
+    plt.tight_layout()
+    plt.subplots_adjust(top=0.90)
     plt.savefig(os.path.join(outdata,'%s_bInf_histogram_stn%s-%s_%iiter_%ichains_%iwarmup.pdf'\
         %(title_str,min_stn,max_stn,niter,nchains,nwarm)),format='pdf')
     plt.close(f1)
 
-    f2, axarr = plt.subplots(N1+1, 1, figsize=(8,6))
+    f2, axarr = plt.subplots(N1+1, 1, figsize=(10,10))
     f2.suptitle("Dependence of b1 on %s"%b1_str)
     for i in range(N1+1):
         yhist, xhist, _ = axarr[i].hist(post['beta1'][:,i],bins=np.int(np.sqrt(len(post['beta1'][:,i]))),\
@@ -273,12 +273,13 @@ def fit_var(parameters):
             axarr[i].set_title("Constant")
         else:
             axarr[i].set_title(b1_vars[i-1])
-    #plt.tight_layout()
+    plt.tight_layout()
+    plt.subplots_adjust(top=0.90)
     plt.savefig(os.path.join(outdata,'%s_b1_histogram_stn%s-%s_%iiter_%ichains_%iwarmup.pdf'\
         %(title_str,min_stn,max_stn,niter,nchains,nwarm)),format='pdf')
     plt.close(f2)
 
-    f3, axarr = plt.subplots(N2+1, 1, figsize=(8,6))
+    f3, axarr = plt.subplots(N2+1, 1, figsize=(10,10))
     f3.suptitle("Dependence of b2 on %s"%b2_str)
     for i in range(N1+1):
         yhist, xhist, _ = axarr[i].hist(post['beta2'][:,i],bins=np.int(np.sqrt(len(post['beta2'][:,i]))),\
@@ -292,7 +293,8 @@ def fit_var(parameters):
             axarr[i].set_title("Constant")
         else:
             axarr[i].set_title(b2_vars[i-1])
-    #plt.tight_layout()
+    plt.tight_layout()
+    plt.subplots_adjust(top=0.90)
     plt.savefig(os.path.join(outdata,'%s_b2_histogram_stn%s-%s_%iiter_%ichains_%iwarmup.pdf'\
         %(title_str,min_stn,max_stn,niter,nchains,nwarm)),format='pdf')
     plt.close(f3)

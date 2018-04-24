@@ -28,6 +28,6 @@ model{
 		bInf[i] ~ normal(dot_product(MInf[i,],betaInf),bInf_sd); //location-specific bInf
 		b1[i] ~ normal(dot_product(M1[i,],beta1),b1_sd); //location-specific b1
 		b2[i] ~ normal(dot_product(M2[i,],beta2),b2_sd); //location-specific b2
-		y[(ni[i]+1):ni[i+1]] ~ normal(bInf[i] + (b1[i]-bInf[i])*exp(x[(ni[i]+1):ni[i+1]]/b2[i]), sigma); //likelihood of data, station by station
+		y[(ni[i]+1):ni[i+1]] ~ normal(log(bInf[i] + (b1[i]-bInf[i])*exp(x[(ni[i]+1):ni[i+1]]/b2[i])), sigma); //likelihood of data, station by station
 	}
 }
