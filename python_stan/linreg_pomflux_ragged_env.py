@@ -151,6 +151,7 @@ def fit_var(parameters):
         #if np.count_nonzero(d['id_mon_yr'][indstn]==station_nums[i]) > 1:
         n[i] = np.count_nonzero(d['id_mon_yr'][indstn]==station_nums[i])
     N = np.int(np.sum(n)) #-- total number of points
+
     #vector index for dataset stacked as single column
     ni = np.concatenate([np.array([0]),np.cumsum(n)])
     ni = np.array(ni,dtype=np.int)
@@ -259,14 +260,14 @@ def fit_var(parameters):
             axarr[i].set_title("Constant")
         else:
             axarr[i].set_title(intercept_vars[i-1])
-    #plt.tight_layout()
+    plt.tight_layout()
     plt.savefig(os.path.join(outdata,'%s_intercept_histogram_stn%s-%s_%iiter_%ichains_%iwarmup.pdf'\
         %(title_str,min_stn,max_stn,niter,nchains,nwarm)),format='pdf')
     plt.close(f3)
 
     f4, axarr = plt.subplots(NS+1, 1, figsize=(8,6))
     f4.suptitle("Dependence of Slope on %s"%slope_str)
-    for i in range(NI+1):
+    for i in range(NS+1):
         yhist, xhist, _ = axarr[i].hist(post['beta1'][:,i],bins=np.int(np.sqrt(len(post['beta1'][:,i]))),\
             color='grey')
         #-- make y axis for plotting vertical lines
@@ -278,7 +279,7 @@ def fit_var(parameters):
             axarr[i].set_title("Constant")
         else:
             axarr[i].set_title(slope_vars[i-1])
-    #plt.tight_layout()
+    plt.tight_layout()
     plt.savefig(os.path.join(outdata,'%s_slope_histogram_stn%s-%s_%iiter_%ichains_%iwarmup.pdf'\
         %(title_str,min_stn,max_stn,niter,nchains,nwarm)),format='pdf')
     plt.close(f4)
