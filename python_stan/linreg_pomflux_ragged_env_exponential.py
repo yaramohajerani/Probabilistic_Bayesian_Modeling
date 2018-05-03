@@ -207,8 +207,8 @@ def fit_var(parameters):
     for i,v in enumerate(b2_varNames):
         M2[:,i+1] = b2_avg[v][:]
 
-    dat = dict(p=p, N=N, Ninf=Ninf, N1=N1, N2=N2, ni=ni, x=X, y=Y,\
-        MInf=MInf, M1=M1, M2=M2)
+    dat = dict(p=p, N=N, NJ0=Ninf, Nf=N1, Nl=N2, ni=ni, x=X, y=Y,\
+        MJ0=MInf, Mf=M1, Ml=M2)
 
 
     #######################################################
