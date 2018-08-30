@@ -4,8 +4,8 @@
 library(lubridate)
 
 #-DFLUX-####################################################
-#dflux           <- read.delim('c:/users/greg/dropbox/teaching/stan_examples/data/GO_flux.tab',header=TRUE,skip=85) #read in the data; data start at line 86
-dflux           <- read.delim('d:/dropbox/teaching/stan_examples/data/GO_flux.tab',header=TRUE,skip=85,stringsAsFactor=FALSE) #read in the data; data start at line 86
+dflux           <- read.delim('c:/users/greg/dropbox/teaching/stan_examples/data/GO_flux.tab',header=TRUE,skip=85) #read in the data; data start at line 86
+#dflux           <- read.delim('d:/dropbox/teaching/stan_examples/data/GO_flux.tab',header=TRUE,skip=85,stringsAsFactor=FALSE) #read in the data; data start at line 86
 colnames(dflux) <- c('id_ref','id','type','lat','lon','trap','depth_bathy','depth','start','end','time','area','flux_pom','flux_pom_sd','flux_c','flux_c_sd','flux_poc','flux_poc_sd','flux_pic','flux_pic_sd','flux_pon','flux_pon_sd','flux_pop','flux_pop_sd','flux_psi','flux_psi_sd','flux_psio2','flux_psioh4','flux_pai','flux_pai_sd','flux_chl','flux_pheop','flux_caco3','flux_caco3_sd','flux_fe','flux_fe_sd','flux_ba','flux_det','flux_ti','ref','url','url2') #write over the crazy variable names in the original data
 dflux$year      <- substr(as.character(dflux$start),1,4); 
 dflux$month     <- substr(as.character(dflux$start),6,7); 
