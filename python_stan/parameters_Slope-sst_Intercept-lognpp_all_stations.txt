@@ -1,0 +1,9 @@
+slope_variables  sst_mon	# environmental dependence of slope
+intercept_variables  lognpp_mon	# envionemntal dependence if intercept
+min_stn      1   # set intial station number X
+max_stn      None   # set final station number X
+iterations   2000  # set number of iterations
+chains       4   # set number of chains
+warmup       1000   # set number of warmup cycles
+PLOT         N # Y make plots of slopes and intercepts. N no plots except for environmental histograms
+NP           0   # Number of parallel jobs for chains
